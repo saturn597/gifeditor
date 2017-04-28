@@ -10,9 +10,3 @@ const img = new Image();
 img.src = 'data:image/gif;base64,' + b64;
 
 document.getElementsByTagName('body')[0].appendChild(img);
-
-
-
-
-
-
