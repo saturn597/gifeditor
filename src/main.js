@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 import {getGifData, makeFrame} from './gifs.js';
+import {DrawCanvas} from './draw.js';
 
 require('babel-polyfill');
 
@@ -48,6 +49,9 @@ class GifEditor extends React.Component {
         // errors when using larger images.
         const b64 = window.btoa(data.map(i => String.fromCharCode(i)).join(''));
 
-        return <img src={DATAURLPREFIX+b64}></img>
+        return <div>
+            Animation:<img src={DATAURLPREFIX+b64}></img>
+            <DrawCanvas></DrawCanvas>
+        </div>;
     }
 }

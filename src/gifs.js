@@ -478,6 +478,3 @@ function pack(data) {
 function toCharCodes(str) {
     return str.split('').map(c => c.charCodeAt(0));
 }
-
-
-
