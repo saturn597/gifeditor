@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import {getGifData, makeFrame} from './gifs.js';
+import {Frame, getGifData} from './gifs.js';
 import {DrawCanvas} from './draw.js';
 
 require('babel-polyfill');
@@ -34,7 +34,7 @@ class GifEditor extends React.Component {
             animCanvas[i].height = animImg[i].height;
             animCtx[i] = animCanvas[i].getContext('2d');
             animCtx[i].drawImage(animImg[i], 0, 0);
-            frames[i] = makeFrame(animCanvas[i], Math.floor(Math.random() * 100 + 1), 1);
+            frames[i] = new Frame(animCanvas[i], Math.floor(Math.random() * 100 + 1), 1);
         }
         frames = [frames[1], frames[2], frames[1], frames[2], frames[0]];
 

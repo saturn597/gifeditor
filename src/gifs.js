@@ -1,85 +1,112 @@
 // Module for constructing a (possibly animated) GIF out of images stored in
 // HTML5 canvases.
 
-// To make a GIF, first use makeFrame to make one or more frames based on your
-// canvases, then pass those frames to getGifData.
-
-export {getGifData, makeFrame};
+// To make a GIF, first create one or more instances of Frame to represent the
+// individual frame(s) of the animation, then pass those frames to getGifData.
 
 /************* Public interface *************/
-function makeFrame(canvas, delay, disposal) {
-    // Returns an object corresponding to one frame of a GIF. These objects can
+class Frame {
+    // Class for objects corresponding to one frame of a GIF. These objects can
     // be passed to getGifData to actually retrieve the binary data for a GIF.
-    //
-    // Delay is how long the frame lasts in hundredths of a second (greater
-    // than or equal to 0 and less than 256 ** 2).
-    //
-    // Disposal is an integer 0-7 and specifies what to do with this frame when
-    // advancing to the next frame. 0 means we have a static image, so we won't
-    // advance to another frame. 1 means draw the next image on top of this
-    // one, 2 means restore all colors to the background color, 3 (not widely
-    // supported) means go back to the state before the current frame was
-    // drawn. 4-7 are not yet defined.
 
-    if (!Number.isInteger(delay) || delay < 0 || delay >= 256 ** 2) {
-        throw "invalid delay value";
+    constructor(canvas, delay, disposal) {
+        // Canvas indicates which canvas to reference when pulling image data
+        // for this frame. When getData is called, the image data will pulled
+        // from that canvas.
+        //
+        // Delay is how long the frame lasts in hundredths of a second (greater
+        // than or equal to 0 and less than 256 ** 2).
+        //
+        // Disposal is an integer 0-7 and specifies what to do with this frame
+        // when advancing to the next frame. 0 means we have a static image, so
+        // we won't advance to another frame. 1 means draw the next image on
+        // top of this one, 2 means restore all pixels to the background color,
+        // 3 (not widely supported) means go back to the state before the
+        // current frame was drawn. 4-7 are not yet defined.
+
+        this.canvas = canvas;
+        this.setDelay(delay);
+        this.setDisposal(disposal);
     }
 
-    if (!Number.isInteger(disposal) || disposal < 0 ||
-            disposal > 7) {
-        throw "invalid disposal method";
-    }
+    getData() {
+        const imageLeft = 0;
+        const imageTop = 0;
 
-    const imageLeft = 0;
-    const imageTop = 0;
+        const ctx = this.canvas.getContext('2d');
+        const {indices, colors} = toIndices(ctx);
 
-    const ctx = canvas.getContext('2d');
-    const {indices, colors} = toIndices(ctx);
-
-    if (colors.length > 256) {
-        throw 'Too many colors in frame.';
-    }
-
-    const colorTable = getColorData(colors);
-    const colorTableSize =
-        colors.length > 0 ?
-        Math.log2(colorTable.length / 3) - 1 :
-        0;
-
-    const imageDescriptor = [
-        0x2c,  // Image separator - begins each image descriptor
-        ...getBytes(imageLeft, 2),
-        ...getBytes(imageTop, 2),
-        ...getBytes(canvas.width, 2),
-        ...getBytes(canvas.height, 2),
-        pack([
-                [colorTable.length > 0 ? 1 : 0, 1],  // Local color table present?
-                [0, 1],  // Interlace flag - currently ignoring.
-                [0, 1],  // Sort flag, generally ignoring.
-                [0, 2],  // "Reserved for future use" in GIF standard.
-                [colorTableSize, 3]  // Size of local color table.
-        ])
-    ];
-
-    const cr = getCodeReader(indices, colorTable.length / 3);
-    const minCodeSize = Math.ceil(Math.log2(colors.length));
-    const data = chunkify(Array.from(getByteReader(cr, 8)), 255);
-
-    for (let d of data) {
-        if (!Number.isInteger(d) || d > 255 || d < 0) {
-            throw "Invalid data point!";
+        if (colors.length > 256) {
+            throw 'Too many colors in frame.';
         }
+
+        let result = [];
+
+        const colorTable = getColorData(colors);
+        const colorTableSize =
+            colors.length > 0 ?
+            Math.log2(colorTable.length / 3) - 1 :
+            0;
+
+        // Push the image descriptor section
+        result.push(
+            0x2c,  // Image separator - begins each image descriptor
+            ...getBytes(imageLeft, 2),
+            ...getBytes(imageTop, 2),
+            ...getBytes(this.canvas.width, 2),
+            ...getBytes(this.canvas.height, 2),
+            pack([
+                    [colorTable.length > 0 ? 1 : 0, 1],  // Local color table present?
+                    [0, 1],  // Interlace flag. Currently ignoring.
+                    [0, 1],  // Sort flag. Currently ignoring.
+                    [0, 2],  // "Reserved for future use" in GIF standard.
+                    [colorTableSize, 3]  // Size of local color table.
+            ])
+        );
+
+        // Push the color table
+        if (colorTable.length > 0) {
+            result.push(...colorTable);
+        }
+
+        // Gather what we need for the image data section.
+        const cr = getCodeReader(indices, colorTable.length / 3);
+        const minCodeSize = Math.ceil(Math.log2(colors.length));
+        const data = chunkify(Array.from(getByteReader(cr, 8)), 255);
+
+        // The image data section starts with the minimum code size, then byte
+        // representations of the actual image data (a chunk size, then the
+        // byte representation of the codes, then another chunk size if there's
+        // more data left, etc.)
+        result.push(minCodeSize);
+        for (let d of data) {
+            if (!Number.isInteger(d) || d > 255 || d < 0) {
+                throw "Invalid data point!";
+            }
+        }
+        // Note, using result.push(...data) results in "maximum call stack size
+        // exceeded" in Chromium with larger images - can't call a method with
+        // that many arguments.
+        result = result.concat(data);
+        result.push(0);
+
+        return result;
     }
 
-    const imageData = [minCodeSize, ...data, 0];
-
-    return {
-        colorTable,
-        delay,
-        disposal,
-        imageDescriptor,
-        imageData,
+    setDelay(delay) {
+        if (!Number.isInteger(delay) || delay < 0 || delay >= 256 ** 2) {
+            throw "invalid delay value";
+        }
+        this.delay = delay;
     }
+
+    setDisposal(disposal) {
+        if (!Number.isInteger(disposal) || disposal < 0 || disposal > 7) {
+            throw "invalid disposal method";
+        }
+        this.disposal = disposal;
+    }
+
 }
 
 
@@ -131,7 +158,7 @@ function getGifData(frames, repeats, width, height) {
     const pixelAspectRatio = 0;
 
     // First 6 bytes identify this as a GIF, version 89a
-    const data = toCharCodes('GIF89a');
+    let data = toCharCodes('GIF89a');
 
     // Now the logical screen descriptor.
     data.push(
@@ -172,19 +199,10 @@ function getGifData(frames, repeats, width, height) {
     }
 
     for (let frame of frames) {
+        // TODO: getGCE could probably be folded in as a frame method, and the
+        // results included in frame.getData.
         data.push(...getGCE(frame.delay, frame.disposal));
-        data.push(...frame.imageDescriptor);
-        if (frame.colorTable.length > 0) {
-            data.push(...frame.colorTable);
-        }
-
-        const id = frame.imageData;
-        // Push the main image data in one element at a time - trying to concat
-        // or use push(...id) results in "maximum call stack size exceeded" in
-        // Chromium with larger images.
-        for (let i of id) {
-            data.push(i);
-        }
+        data = data.concat(frame.getData());
     }
 
     data.push(0x3b);  // 0x3b signals end of GIF
@@ -340,7 +358,8 @@ function getGCE(delay, disposal, transparentIndex) {
     //
     // Delay is how long this frame should last in 100ths of a second. Disposal
     // is what happens to the image in this frame when we advance to the next
-    // (the meaning of each disposal value is discussed in makeFrame).
+    // (the meaning of each disposal value is discussed in the Frame
+    // constructor).
     //
     // The transparent index in a GIF says which index corresponds to a
     // transparent pixel in the image data that's to follow. Must be 0-255. If
@@ -478,3 +497,6 @@ function pack(data) {
 function toCharCodes(str) {
     return str.split('').map(c => c.charCodeAt(0));
 }
+
+
+export {Frame, getGifData};
