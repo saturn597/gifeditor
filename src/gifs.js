@@ -4,6 +4,7 @@
 // To make a GIF, first create one or more instances of Frame to represent the
 // individual frame(s) of the animation, then pass those frames to getGifData.
 
+
 /************* Public interface *************/
 class Frame {
     // Class for objects corresponding to one frame of a GIF. These objects can
@@ -42,11 +43,11 @@ class Frame {
 
         let result = [];
 
-        const colorTable = getColorData(colors);
-        const colorTableSize =
-            colors.length > 0 ?
-            Math.log2(colorTable.length / 3) - 1 :
-            0;
+        const {
+            colorTable,
+            encodedColorTableSize,
+            minCodeSize
+        } = getColorData(colors);
 
         // Push the image descriptor section
         result.push(
@@ -60,7 +61,7 @@ class Frame {
                     [0, 1],  // Interlace flag. Currently ignoring.
                     [0, 1],  // Sort flag. Currently ignoring.
                     [0, 2],  // "Reserved for future use" in GIF standard.
-                    [colorTableSize, 3]  // Size of local color table.
+                    [encodedColorTableSize, 3]  // Size of local color table.
             ])
         );
 
@@ -70,8 +71,8 @@ class Frame {
         }
 
         // Gather what we need for the image data section.
-        const cr = getCodeReader(indices, Math.max(colorTable.length / 3, 4));
-        const minCodeSize = Math.max(Math.ceil(Math.log2(colors.length)), 2);
+        const cr = getCodeReader(indices, minCodeSize);
+
         const data = chunkify(Array.from(getByteReader(cr, 8)), 255);
 
         // The image data section starts with the minimum code size, then byte
@@ -89,6 +90,7 @@ class Frame {
         // that many arguments.
         result = result.concat(data);
         result.push(0);
+
 
         return result;
     }
@@ -146,15 +148,19 @@ function getGifData(frames, repeats, width, height) {
     }
 
     const globalColors = [];  // Currently not using global color table
-    const globalColorData = getColorData(globalColors);
+    // TODO: might be good to have one for some cases?
+
+    const {
+        colorTable,
+        encodedColorTableSize,
+    } = getColorData(globalColors);
 
     const bgColorIndex = 0;  // index to use for pixels not specified in image data. 0 if no global color table.
-    const globalColorTableSize =
-        globalColors.length > 0 ?
-        Math.log2(globalColorData.length / 3) - 1 :
-        0;
-    const colorResolution = globalColorTableSize;  // TODO: Are these actually the same?
-    // http://stackoverflow.com/questions/7128265/purpose-of-color-resolution-bits-in-a-gif ??
+
+    // http://stackoverflow.com/questions/7128265/purpose-of-color-resolution-bits-in-a-gif
+    // (I'm not really setting this correctly).
+    const colorResolution = encodedColorTableSize;
+
     const pixelAspectRatio = 0;
 
     // First 6 bytes identify this as a GIF, version 89a
@@ -165,18 +171,18 @@ function getGifData(frames, repeats, width, height) {
         ...getBytes(width, 2),
         ...getBytes(height, 2),
         pack([
-            [globalColorData.length > 0 ? 1 : 0, 1],  // global color table present?
+            [colorTable.length > 0 ? 1 : 0, 1],  // global color table present?
             [colorResolution, 3],
             [0, 1],  // this is the sort flag, which is now largely ignored
-            [globalColorTableSize, 3],  // global color table size
+            [encodedColorTableSize, 3],  // global color table size
         ]),
         bgColorIndex,
         pixelAspectRatio
     );
 
     // Add global color data if present.
-    if (globalColorData.length > 0) {
-        data.push(...globalColorData);
+    if (colorTable.length > 0) {
+        data.push(...colorTable);
     }
 
     // If we have multiple frames, add the application extension block required
@@ -200,7 +206,10 @@ function getGifData(frames, repeats, width, height) {
 
     for (let frame of frames) {
         // TODO: getGCE could probably be folded in as a frame method, and the
-        // results included in frame.getData.
+        // results included in frame.getData. Also, getGCE doesn't need to be
+        // there if the GIF has only 1 frame. Also, frame.disposal should
+        // technically be 0 if there's only 1 frame - maybe generate an
+        // exception?
         data.push(...getGCE(frame.delay, frame.disposal));
         data = data.concat(frame.getData());
     }
@@ -273,61 +282,69 @@ function getByteReader(items, outSize) {
 }
 
 
-function getCodeReader(indices, numColors) {
-    // indices: data being compressed
-    // numColors: the number of initial codes we expect
+function getCodeReader(indices, minCodeSize) {
+    // Returns an iterator through a series of codes representing the image
+    // data in a GIF. To compute the codes, we use the GIF version of LZW
+    // compression to compress the indices we are given.
+    //
+    // These codes will need to be converted to bits in order to output GIF
+    // data. The number of bits each code takes up - the code size - changes as
+    // we build the GIF. So at each iteration, our iterator yields both the
+    // code itself and the size of that code.
+    //
+    // indices: the data being compressed. Each index should be an integer
+    // ranging from 0 to 2 ** minCodeSize - 1.
+    // minCodeSize: the minimum code size. The initial code size will be
+    // minCodeSize + 1 (to allow for the "clear" and "end" codes).
 
     const codes = [];
     const codeTable = new Map();
-    let indexBuffer = [];
 
-    let match;
-    let oldIndexBuffer;
-
-    const colorTableSize = Math.ceil(Math.log2(numColors));
-    let codeSize = colorTableSize + 1;
+    let codeSize;
+    let nextCode;
 
     function initializeCodeTable() {
+        codeSize = minCodeSize + 1;
         codeTable.clear();
-        for (let i = 0; i < 2**colorTableSize; i++) {
+
+        // We allow indices from 0 to 2**minCodeSize - 1. Populate our initial
+        // code table with a code for each possible index. We'll populate it
+        // later with codes representing sequences of multiple indices.
+        for (let i = 0; i < 2**minCodeSize; i++) {
             codeTable.set(i.toString(10), i);
         }
-
-        codeTable.set('clear', 2**colorTableSize);
-        codeTable.set('end', 2**colorTableSize + 1);
+        codeTable.set('clear', 2**minCodeSize);
+        codeTable.set('end', 2**minCodeSize + 1);
+        nextCode = codeTable.get('end') + 1;
     }
-
     initializeCodeTable();
 
-    let indexBufferString;
     const reader = {};
     reader[Symbol.iterator] = function* () {
+        let indexBuffer = [indices[0]];
+        let indexBufferString = indices[0].toString(10);
+
         yield [codeTable.get('clear'), codeSize];
 
-        for (let index of indices) {
-            if (indexBufferString === undefined) {
-                indexBufferString = index.toString();
-            } else {
-                indexBufferString += ',' + index;
-            }
+        for (let index of indices.slice(1)) {
+            indexBufferString += ',' + index;
             indexBuffer.push(index);
-            match = codeTable.get(indexBufferString);
-            if (match === undefined) {
-                const codeToAdd = codeTable.size;
-                codeTable.set(indexBufferString, codeToAdd);
-                oldIndexBuffer = indexBuffer.slice(0, -1);
+            if (codeTable.get(indexBufferString) === undefined) {
+                yield [codeTable.get(indexBuffer.slice(0, -1).join(',')),
+                    codeSize];
+
+                codeTable.set(indexBufferString, nextCode);
                 indexBuffer = indexBuffer.slice(-1);
                 indexBufferString = indexBuffer.toString();
-                yield [codeTable.get(oldIndexBuffer.join(',')), codeSize];
-                if (codeToAdd === 2**codeSize) {
+                if (nextCode === 2**codeSize) {
                     codeSize += 1;
                 }
 
-                if (codeTable.size === 4096) {
+                nextCode++;
+                if (nextCode === 4096) {
                     // The GIF code table can only have up to 4095 entries, so
                     // if we exceed this, issue the code to clear the table.
                     yield [codeTable.get('clear'), codeSize];
-                    codeSize = colorTableSize + 1;
                     initializeCodeTable();
                 }
             }
@@ -344,12 +361,67 @@ function getCodeReader(indices, numColors) {
 
 
 function getColorData(colors) {
-    const table = [].concat(...colors);
+    // Takes an array of colors (where each element is a 3-array containing the
+    // red, green, and blue components of the color, in that order, and where
+    // each component is between 0 and 255). Outputs an object that represents
+    // information we need to represent our colors in a GIF.
 
-    // Number of colors in a GIF color table must be a non-zero power of 2
-    const targetLength = 3 * Math.max(2, 2**Math.ceil(Math.log2(table.length / 3)));
+    // We might not have any colors, so we want to allow an empty color
+    // table. Handle that separately.
+    if (colors.length === 0) {
+        return {
+            colorTable: [],
+            encodedColorTableSize: 0,
+            minCodeSize: 2
+        };
+    }
 
-    return table.concat(Array(targetLength - table.length).fill(0));
+     // We also don't want to deal with a color table of length 1 - GIF parsers
+     // seem to expect at least a couple of colors (even if the image only
+     // contains one).
+    if (colors.length === 1) {
+        colors.push([0, 0, 0]);
+    }
+
+    // GIFs can only have up to 256 colors.
+    if (colors.length > 256) {
+        throw 'too many colors';
+    }
+
+    // When we construct a GIF, we'll need to assign a binary code to each
+    // color. How many bits wide should those codes be to uniquely represent
+    // all of the colors?
+    const baseCodeSize = Math.ceil(Math.log2(colors.length));
+
+    // Experimenting (and checking GIFs exported from GIMP) suggests that GIF
+    // parsers may expect an actual minimum code size of at least 2 (though the
+    // color table can still contain only 2 colors, which could be represented
+    // with one bit).
+    const minCodeSize = Math.max(2, baseCodeSize);
+
+    // Since the color table size must be a power of two, the size of the color
+    // table may be larger than the length of the colors array we were passed.
+    const actualColorCount = 2 ** baseCodeSize;
+
+    // We need to list the color table size in the GIF, encoded (for both local
+    // and global color tables) as an integer "n" between 0 and 7, where the
+    // actual number of colors is 2 ^ (n + 1).
+    const encodedColorTableSize = baseCodeSize - 1;
+
+    // To produce a usable color table we'll need it to contain a number of
+    // colors that's an integer power of two.
+    const padding = Array(actualColorCount - colors.length).fill([0, 0, 0]);
+
+    // The final color table must be a flat array where every three elements
+    // represent a color. Pad and then flatten the colors array to get a color
+    // table we can insert into our GIF data.
+    const colorTable = [].concat(...colors.concat(...padding));
+
+    return {
+        colorTable,
+        encodedColorTableSize,
+        minCodeSize
+    };
 }
 
 
