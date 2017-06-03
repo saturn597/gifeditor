@@ -70,8 +70,8 @@ class Frame {
         }
 
         // Gather what we need for the image data section.
-        const cr = getCodeReader(indices, colorTable.length / 3);
-        const minCodeSize = Math.ceil(Math.log2(colors.length));
+        const cr = getCodeReader(indices, Math.max(colorTable.length / 3, 4));
+        const minCodeSize = Math.max(Math.ceil(Math.log2(colors.length)), 2);
         const data = chunkify(Array.from(getByteReader(cr, 8)), 255);
 
         // The image data section starts with the minimum code size, then byte
