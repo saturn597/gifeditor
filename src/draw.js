@@ -2,12 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 // TODO: Drawing to the canvas takes place outside React. This doesn't seem
-// right. I don't know if there's any guarantee React won't, say, decide at
-// some point to render a new canvas element with blank image data (though
-// maybe it won't as long as nothing changes about the canvas' properties since
-// "React only updates what's necessary). For now this doesn't seem to be an
-// issue but this approach might need to be reconsidered. Is this an
-// appropriate use of React?
+// right. My program is dealing explicitly with a lot of "procedural" things
+// (like when to update which canvas), rather than just having a render method
+// that knows how to update based on states and props. For now this doesn't
+// seem to be an issue but this approach might need to be reconsidered. Is this
+// an appropriate use of React?
 
 
 function lineCoords(pt1, pt2) {
@@ -58,22 +57,46 @@ function lineCoords(pt1, pt2) {
 
 
 class DrawCanvas extends React.Component {
+    // React component for mouse drawing on a canvas. It needs these props:
+    //
+    // - a width and height for the dimensions of the drawing area in pixels
+    //
+    // - a "tracking canvas", which should be a normal HTML5 canvas. The
+    // tracking canvas "tracks" the drawing being made, and gets updated every
+    // time the user finishes drawing a line. The tracking canvas our "caller"
+    // passes us is provides the caller a way to access an almost up-to-date
+    // version of the drawing in process. TODO: Consider getting rid of this.
+    // Could just call drawingUpdated with an image of the updated drawing.
+    //
+    // - a drawingUpdated method. This gets called every time the user finishes
+    // drawing a line (after the tracking canvas is updated).
+
     constructor(props) {
         super(props);
-        this.state = {mouseDown: false};
+        this.state = {lastPoint: {x: 0, y: 0}, mouseDown: false};
+
+        this.mouseDown = this.mouseDown.bind(this);
+        this.mouseMove = this.mouseMove.bind(this);
+        this.mouseOut = this.mouseOut.bind(this);
+        this.mouseUp = this.mouseUp.bind(this);
     }
 
     componentDidMount() {
-        // Initial line for testing line drawing:
-        const coords = lineCoords({
-            'x': 200,
-            'y': 500
-        },
-        {
-            'x': 200,
-            'y': 0
-        });
-        this.draw(coords);
+        this.context.drawImage(this.props.trackingCanvas, 0, 0);
+    }
+
+    componentDidUpdate() {
+        if (this.state.mouseDown) {
+            return;
+        }
+
+        // User may have switched their current frame, so make sure we're up to
+        // date with the right tracking canvas. (If the mouse is down, we don't
+        // do this, because we don't want to erase the current drawing before
+        // it gets transferred to the tracking canvas).
+        const canv = this.context.canvas;
+        this.context.clearRect(0, 0, canv.width, canv.height);
+        this.context.drawImage(this.props.trackingCanvas, 0, 0);
     }
 
     draw(pts) {
@@ -87,19 +110,17 @@ class DrawCanvas extends React.Component {
                     0,
                     2 * Math.PI
                    );*/
-            context.rect(pt.x, pt.y, 1, 1);
+            context.rect(pt.x, pt.y, 5, 5);
         }
         context.fill();
     }
 
     mouseDown(e) {
+        e.nativeEvent.preventDefault();
+
         const startPoint = {'x': e.nativeEvent.offsetX, 'y': e.nativeEvent.offsetY};
         this.draw([startPoint]);
         this.setState({lastPoint: startPoint, mouseDown: true});
-    }
-
-    mouseUp() {
-        this.setState({mouseDown: false});
     }
 
     mouseMove(e) {
@@ -112,18 +133,46 @@ class DrawCanvas extends React.Component {
         this.setState({'lastPoint': currentPoint});
     }
 
+    mouseOut() {
+        // If the user clicks the mouse, moves it out of the canvas, then
+        // mouses up, we won't catch the mouse up event because it wasn't in
+        // the canvas. So just pretend we got a mouse up when the mouse leaves
+        // the canvas.
+        if (this.state.mouseDown) {
+            this.mouseUp();
+        }
+    }
+
+    mouseUp() {
+        this.setState({mouseDown: false});
+
+        const trackingCanvas = this.props.trackingCanvas;
+        const trackingContext = trackingCanvas.getContext('2d');
+        trackingContext.clearRect(
+                0,
+                0,
+                trackingCanvas.width,
+                trackingCanvas.height);
+        trackingContext.drawImage(this.context.canvas, 0, 0);
+
+        // drawingUpdated could maybe be signaled in mouseMove or draw but that
+        // makes line drawing feel unresponsive.
+        this.props.drawingUpdated();
+    }
+
     render() {
         return <canvas
-            width="700"
-            height="500"
-            onMouseDown={this.mouseDown.bind(this)}
-            onMouseUp={this.mouseUp.bind(this)}
-            onMouseMove={this.mouseMove.bind(this)}
+            onMouseDown={this.mouseDown}
+            onMouseUp={this.mouseUp}
+            onMouseMove={this.mouseMove}
+            onMouseOut={this.mouseOut}
             ref={c => {
                 if (c) {
                     this.context = c.getContext('2d');
                 }
             }}
+            width={this.props.width}
+            height={this.props.height}
         ></canvas>
     }
 }

@@ -15,30 +15,62 @@ window.addEventListener('load', function() {
 	// which is more necessary for my tests than it might be for the actual
 	// application).
     ReactDOM.render(
-            React.createElement(GifEditor),
+            <GifEditor
+                defaultDelay={1}
+                initialFrameCount={3}
+
+                width={700}
+                height={500}></GifEditor>,
             document.getElementById('mount')
             );
 });
 
 
-class GifEditor extends React.Component {
+class FrameInfo extends React.Component {
     render() {
-        const animCanvas = [];
-        const animImg = [];
-        const animCtx = [];
-        let frames = [];
-        for (let i = 0; i < 3; i++) {
-            animCanvas[i] = document.createElement('canvas');
-            animImg[i] = document.getElementById('animation' + (i + 1));
-            animCanvas[i].width = animImg[i].width;
-            animCanvas[i].height = animImg[i].height;
-            animCtx[i] = animCanvas[i].getContext('2d');
-            animCtx[i].drawImage(animImg[i], 0, 0);
-            frames[i] = new Frame(animCanvas[i], Math.floor(Math.random() * 100 + 1), 1);
-        }
-        frames = [frames[1], frames[2], frames[1], frames[2], frames[0]];
+        return <div className="frameInfo" onClick={this.props.onClick}>
+            Duration: {this.props.frame.delay}
+            <img src={this.props.frame.canvas.toDataURL()} width="100" height="100"></img>
+        </div>;
+    }
+}
 
-        const data = getGifData(frames, 0);
+class GifEditor extends React.Component {
+    constructor(props) {
+        super(props);
+
+        const frames = [];
+        for (let i = 0; i < this.props.initialFrameCount; i++) {
+            const c = document.createElement('canvas');
+            c.width = this.props.width;
+            c.height = this.props.height;
+
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, c.width, c.height);
+
+            frames.push(new Frame(c, this.props.defaultDelay, 1));
+        }
+
+        this.state = {
+            currentFrame: 0,
+            frames,
+            gifData: ''
+        };
+
+        this.drawingUpdated = this.drawingUpdated.bind(this);
+        this.updateGif = this.updateGif.bind(this);
+    }
+
+    drawingUpdated() {
+        // TODO: bad that frames are being mutated elsewhere. This is difficult
+        // to avoid altogether.
+        this.setState({frames: this.state.frames.slice()});
+    }
+
+    updateGif() {
+        const data = getGifData(this.state.frames, 0, this.props.width,
+                this.props.height);
 
         // One might consider just using:
         //
@@ -48,10 +80,61 @@ class GifEditor extends React.Component {
         // arguments. So doing that leads to max call stack size exceeded
         // errors when using larger images.
         const b64 = window.btoa(data.map(i => String.fromCharCode(i)).join(''));
+        this.setState({gifData: DATAURLPREFIX+b64});
+    }
 
+    render() {
+        let b64 = '';
+
+        const animCanvas = [];
+        const animImg = [];
+        const animCtx = [];
+        let testFrames = [];
+        for (let i = 0; i < 3; i++) {
+            animCanvas[i] = document.createElement('canvas');
+            animImg[i] = document.getElementById('animation' + (i + 1));
+            animCanvas[i].width = animImg[i].width;
+            animCanvas[i].height = animImg[i].height;
+            animCtx[i] = animCanvas[i].getContext('2d');
+            animCtx[i].drawImage(animImg[i], 0, 0);
+            testFrames[i] = new Frame(animCanvas[i], Math.floor(Math.random() * 100 + 1), 1);
+        }
+        testFrames = [testFrames[1], testFrames[2], testFrames[1], testFrames[2], testFrames[0]];
+
+        const data = getGifData(testFrames, 0);
+
+        // One might consider just using:
+        //
+        // const b64 = window.btoa(String.fromCharCode(...data));
+        //
+        // BUT data could be very large, and browsers can't handle that many
+        // arguments. So doing that leads to max call stack size exceeded
+        // errors when using larger images.
+        b64 = window.btoa(data.map(i => String.fromCharCode(i)).join(''));
+
+        const frameDisplay = [];
+        let i = 0;
+        for (let f of this.state.frames) {
+            frameDisplay.push(<FrameInfo
+                    frame={f}
+                    key={i}
+                    onClick={((i) => this.setState({currentFrame: i})).bind(this, i)}>
+                </FrameInfo>);
+            i++;
+        }
+
+        const currentFrame = this.state.frames[this.state.currentFrame];
         return <div>
             Animation:<img src={DATAURLPREFIX+b64}></img>
-            <DrawCanvas></DrawCanvas>
+            <DrawCanvas
+                drawingUpdated={this.drawingUpdated}
+                trackingCanvas={currentFrame.canvas}
+                width={this.props.width}
+                height={this.props.height}>
+            </DrawCanvas>
+            {frameDisplay}
+            <button onClick={this.updateGif}>Update GIF</button>
+            <img src={this.state.gifData}></img>
         </div>;
     }
 }

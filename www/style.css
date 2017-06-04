@@ -1,4 +1,25 @@
+body {
+    background-color: orange;
+}
+
 canvas {
     border: 1px solid red;
     display: block;
+}
+
+.frameInfo {
+    background-color: cadetblue;
+    border: 1px solid navy;
+    border-radius: 15px;
+
+    font-size: 15px;
+    font-family: "Helvetica Neue",Helvetica,sans-serif;
+    margin: 10px 0;
+    text-align: center;
+
+    width: 150px;
+}
+
+img {
+    border: 1px solid navy;
 }
