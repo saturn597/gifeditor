@@ -73,12 +73,14 @@ class DrawCanvas extends React.Component {
 
     constructor(props) {
         super(props);
-        this.state = {lastPoint: {x: 0, y: 0}, mouseDown: false};
 
         this.mouseDown = this.mouseDown.bind(this);
         this.mouseMove = this.mouseMove.bind(this);
         this.mouseOut = this.mouseOut.bind(this);
         this.mouseUp = this.mouseUp.bind(this);
+
+        this.mouseIsDown = false;
+        this.lastPoint = {x: 0, y: 0};
     }
 
     componentDidMount() {
@@ -86,14 +88,8 @@ class DrawCanvas extends React.Component {
     }
 
     componentDidUpdate() {
-        if (this.state.mouseDown) {
-            return;
-        }
-
         // User may have switched their current frame, so make sure we're up to
-        // date with the right tracking canvas. (If the mouse is down, we don't
-        // do this, because we don't want to erase the current drawing before
-        // it gets transferred to the tracking canvas).
+        // date with the right tracking canvas.
         const canv = this.context.canvas;
         this.context.clearRect(0, 0, canv.width, canv.height);
         this.context.drawImage(this.props.trackingCanvas, 0, 0);
@@ -118,19 +114,24 @@ class DrawCanvas extends React.Component {
     mouseDown(e) {
         e.nativeEvent.preventDefault();
 
-        const startPoint = {'x': e.nativeEvent.offsetX, 'y': e.nativeEvent.offsetY};
-        this.draw([startPoint]);
-        this.setState({lastPoint: startPoint, mouseDown: true});
+        this.mouseIsDown = true;
+
+        this.lastPoint = {
+            'x': e.nativeEvent.offsetX,
+            'y': e.nativeEvent.offsetY
+        };
+
+        this.draw([this.lastPoint]);
     }
 
     mouseMove(e) {
-        if (!this.state.mouseDown) {
+        if (!this.mouseIsDown) {
             return;
         }
 
         const currentPoint = {'x': e.nativeEvent.offsetX, 'y': e.nativeEvent.offsetY};;
-        this.draw(lineCoords(this.state.lastPoint, currentPoint));
-        this.setState({'lastPoint': currentPoint});
+        this.draw(lineCoords(this.lastPoint, currentPoint));
+        this.lastPoint = currentPoint;
     }
 
     mouseOut() {
@@ -138,13 +139,13 @@ class DrawCanvas extends React.Component {
         // mouses up, we won't catch the mouse up event because it wasn't in
         // the canvas. So just pretend we got a mouse up when the mouse leaves
         // the canvas.
-        if (this.state.mouseDown) {
+        if (this.mouseIsDown) {
             this.mouseUp();
         }
     }
 
     mouseUp() {
-        this.setState({mouseDown: false});
+        this.mouseIsDown = false;
 
         const trackingCanvas = this.props.trackingCanvas;
         const trackingContext = trackingCanvas.getContext('2d');
