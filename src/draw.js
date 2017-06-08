@@ -61,12 +61,10 @@ class DrawCanvas extends React.Component {
     //
     // - a width and height for the dimensions of the drawing area in pixels
     //
-    // - a "tracking canvas", which should be a normal HTML5 canvas. The
-    // tracking canvas "tracks" the drawing being made, and gets updated every
-    // time the user finishes drawing a line. The tracking canvas our "caller"
-    // passes us is provides the caller a way to access an almost up-to-date
-    // version of the drawing in process. TODO: Consider getting rid of this.
-    // Could just call drawingUpdated with an image of the updated drawing.
+    // - content, to specify what the canvas should look like before drawing
+    // takes place. Can be any object that's drawable by
+    // canvasContext.drawImage, including a canvas. The canvas will revert to
+    // the specified content when it is re-rendered.
     //
     // - a drawingUpdated method. This gets called every time the user finishes
     // drawing a line (after the tracking canvas is updated).
@@ -84,15 +82,14 @@ class DrawCanvas extends React.Component {
     }
 
     componentDidMount() {
-        this.context.drawImage(this.props.trackingCanvas, 0, 0);
+        this.context.drawImage(this.props.content, 0, 0);
     }
 
     componentDidUpdate() {
-        // User may have switched their current frame, so make sure we're up to
-        // date with the right tracking canvas.
+        // Make sure we're updated with the content.
         const canv = this.context.canvas;
         this.context.clearRect(0, 0, canv.width, canv.height);
-        this.context.drawImage(this.props.trackingCanvas, 0, 0);
+        this.context.drawImage(this.props.content, 0, 0);
     }
 
     draw(pts) {
@@ -147,18 +144,17 @@ class DrawCanvas extends React.Component {
     mouseUp() {
         this.mouseIsDown = false;
 
-        const trackingCanvas = this.props.trackingCanvas;
-        const trackingContext = trackingCanvas.getContext('2d');
-        trackingContext.clearRect(
-                0,
-                0,
-                trackingCanvas.width,
-                trackingCanvas.height);
-        trackingContext.drawImage(this.context.canvas, 0, 0);
-
         // drawingUpdated could maybe be signaled in mouseMove or draw but that
         // makes line drawing feel unresponsive.
-        this.props.drawingUpdated();
+        // TODO: does it work better/faster to pass a canvas or an image to
+        // drawingUpdated?
+        const c = this.context.canvas;
+        const newC = document.createElement('canvas');
+        newC.width = c.width;
+        newC.height = c.height;
+        const newCtx = newC.getContext('2d');
+        newCtx.drawImage(c, 0, 0);
+        this.props.drawingUpdated(newC);
     }
 
     render() {
