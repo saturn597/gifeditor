@@ -2,12 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import update from 'immutability-helper'
 
-import {Frame, getGifData} from './gifs.js';
+import {Frame, getGifUrl} from './gifs.js';
 import {DrawCanvas} from './draw.js';
 
 require('babel-polyfill');
-
-const DATAURLPREFIX = 'data:image/gif;base64,';
 
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -77,18 +75,9 @@ class GifEditor extends React.Component {
         const frames = this.state.frameData.map((f) =>
                 new Frame(f.canvas, f.delay, f.disposal));
 
-        const data = getGifData(frames, 0, this.props.width,
-                this.props.height);
+        const url = getGifUrl(frames, 0, this.props.width, this.props.height);
 
-        // One might consider just using:
-        //
-        // const b64 = window.btoa(String.fromCharCode(...data));
-        //
-        // BUT data could be very large, and browsers can't handle that many
-        // arguments. So doing that leads to max call stack size exceeded
-        // errors when using larger images.
-        const b64 = window.btoa(data.map(i => String.fromCharCode(i)).join(''));
-        this.setState({gifData: DATAURLPREFIX+b64});
+        this.setState({gifData: url});
     }
 
     render() {

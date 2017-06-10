@@ -1,12 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import {Frame, getGifData} from './gifs.js';
+import {Frame, getGifUrl} from './gifs.js';
 
 require('babel-polyfill');
-
-// TODO: DATAURLPREFIX is defined in main.js too - consider consolidating.
-const DATAURLPREFIX = 'data:image/gif;base64,';
 
 
 class Test extends React.Component {
@@ -26,18 +23,8 @@ class Test extends React.Component {
         }
         testFrames = [testFrames[1], testFrames[2], testFrames[1], testFrames[2], testFrames[0]];
 
-        const data = getGifData(testFrames, 0);
-
-        // One might consider just using:
-        //
-        // const b64 = window.btoa(String.fromCharCode(...data));
-        //
-        // BUT data could be very large, and browsers can't handle that many
-        // arguments. So doing that leads to max call stack size exceeded
-        // errors when using larger images.
-        const b64 = window.btoa(data.map(i =>
-                    String.fromCharCode(i)).join(''));
-        return <img src={DATAURLPREFIX+b64} />
+        const data = getGifUrl(testFrames, 0);
+        return <img src={getGifUrl(testFrames, 0)} />
     }
 }
 

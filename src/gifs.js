@@ -2,7 +2,7 @@
 // HTML5 canvases.
 
 // To make a GIF, first create one or more instances of Frame to represent the
-// individual frame(s) of the animation, then pass those frames to getGifData.
+// individual frame(s) of the animation, then pass those frames to getGifUrl.
 
 
 /************* Public interface *************/
@@ -217,6 +217,27 @@ function getGifData(frames, repeats, width, height) {
     data.push(0x3b);  // 0x3b signals end of GIF
 
     return data;
+}
+
+
+function getGifUrl(...args) {
+    // Arguments are the same as getGifData.
+    //
+    // Instead of an array of integers, returns a data URL that represents the
+    // GIF.
+
+    const DATAURLPREFIX = 'data:image/gif;base64,';
+    const data = getGifData(...args);
+
+    // One might consider just using:
+    //
+    // window.btoa(String.fromCharCode(...data));
+    //
+    // BUT data could be very large, and browsers can't handle that many
+    // arguments. So doing that leads to max call stack size exceeded
+    // errors when using larger images.
+    return DATAURLPREFIX +
+        window.btoa(data.map(i => String.fromCharCode(i)).join(''));
 }
 
 
@@ -571,4 +592,4 @@ function toCharCodes(str) {
 }
 
 
-export {Frame, getGifData};
+export {Frame, getGifData, getGifUrl};
