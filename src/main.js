@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 initialFrameCount={3}
 
                 width={700}
-                height={500}></GifEditor>,
+                height={500} />,
             document.getElementById('mount')
             );
 });
@@ -25,7 +25,7 @@ class FrameInfo extends React.Component {
     render() {
         return <div className="frameInfo" onClick={this.props.onClick}>
             Duration: {this.props.frame.delay}
-            <img src={this.props.frame.canvas.toDataURL()} width="100" height="100"></img>
+            <img src={this.props.frame.canvas.toDataURL()} width="100" height="100" />
         </div>;
     }
 }
@@ -87,8 +87,7 @@ class GifEditor extends React.Component {
             frameDisplay.push(<FrameInfo
                     frame={f}
                     key={i}
-                    onClick={((i) => this.setState({currentFrame: i})).bind(this, i)}>
-                </FrameInfo>);
+                    onClick={((i) => this.setState({currentFrame: i})).bind(this, i)} />);
             i++;
         }
 
@@ -98,11 +97,10 @@ class GifEditor extends React.Component {
                 drawingUpdated={this.drawingUpdated}
                 content={currentFrame.canvas}
                 width={this.props.width}
-                height={this.props.height}>
-            </DrawCanvas>
+                height={this.props.height} />
             {frameDisplay}
             <button onClick={this.updateGif}>Update GIF</button>
-            <img src={this.state.gifData}></img>
+            <img src={this.state.gifData} />
         </div>;
     }
 }
