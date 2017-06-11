@@ -105,21 +105,22 @@ class GifTester extends React.Component {
 
         const images = this.props.frames.map((i, k) =>
             <img src={i.src} key={k} />);
-        if (this.state.imagesLoaded) {
-            return (
-                <div className="test">
-                    {this.props.desc}
-                    <div className="testImages">
-                        {images}
-                    </div>
-                    <div className="testGif">
-                        <img src={this.gifSrc} />
-                    </div>
+
+        return (
+            <div className="test">
+                {this.props.desc}
+                <div className="testImages">
+                    {images}
                 </div>
-            );
-        } else {
-            return <div className="test">{images}</div>;
-        }
+                <div className="testGif">
+                    {
+                        this.state.imagesLoaded ?
+                            <img src={this.gifSrc} /> :
+                            'GIF in process...'
+                    }
+                </div>
+            </div>
+        );
     }
 }
 
