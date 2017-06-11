@@ -28,9 +28,9 @@ class Test extends React.Component {
         const basicAnimation = {
             desc: 'Basic animation.',
             frames: [
-                {src: 'animation1.gif', delay: 1},
-                {src: 'animation2.gif', delay: 1},
-                {src: 'animation3.gif', delay: 1},
+                {src: 'images/animation1.gif', delay: 1},
+                {src: 'images/animation2.gif', delay: 1},
+                {src: 'images/animation3.gif', delay: 1},
             ],
         };
 
