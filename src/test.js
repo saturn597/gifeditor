@@ -20,21 +20,32 @@ function getImage(src) {
 
 class Test extends React.Component {
     render() {
-        const basicGif = {
-            desc: 'Basic GIF.',
-            frames: [{src: 'data:image/gif;base64,R0lGODlhCgAKAJEAAP////8AAAAA/wAAACH5BAAAAAAALAAAAAAKAAoAAAIWjC2Zhyoc3DOgAnXslfqo3mCMBJFMAQA7'}],
-        };
 
-        const basicAnimation = {
-            desc: 'Basic animation.',
-            frames: [
-                {src: 'images/animation1.gif', delay: 1},
-                {src: 'images/animation2.gif', delay: 1},
-                {src: 'images/animation3.gif', delay: 1},
-            ],
-        };
+        const tests = [
+            {
+                desc: 'Basic GIF.',
+                frames: [{src: 'data:image/gif;base64,R0lGODlhCgAKAJEAAP////8AAAAA/wAAACH5BAAAAAAALAAAAAAKAAoAAAIWjC2Zhyoc3DOgAnXslfqo3mCMBJFMAQA7'}],
+            },
 
-        const tests = [basicGif, basicAnimation];
+            {
+                desc: 'Only one color.',
+                frames: [{src: 'images/onecolor.png'}],
+            },
+
+            {
+                desc: 'Two colors.',
+                frames: [{src: 'images/twocolors.png'}],
+            },
+
+            {
+                desc: 'Basic animation.',
+                frames: [
+                    {src: 'images/animation1.gif', delay: 1},
+                    {src: 'images/animation2.gif', delay: 1},
+                    {src: 'images/animation3.gif', delay: 1},
+                ],
+            },
+        ];
 
         const testers = tests.map((t, k) =>
                 <GifTester
