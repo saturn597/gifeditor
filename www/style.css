@@ -23,3 +23,21 @@ canvas {
 img {
     border: 1px solid navy;
 }
+
+.test {
+    border-radius: 15px;
+    margin: 20px;
+    text-align: center;
+}
+
+.testImages {
+    background-color: lightblue;
+    border-radius: 15px;
+    padding: 10px;
+}
+
+.testGif {
+    background-color: lightcyan;
+    border-radius: 15px;
+    padding: 10px;
+}
