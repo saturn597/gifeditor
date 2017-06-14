@@ -40,6 +40,24 @@ class GifEditor extends React.Component {
             c.width = this.props.width;
             c.height = this.props.height;
 
+            // TODO: For now, we'll fill everything in with a background color,
+            // so that there are no transparent areas.  We COULD allow
+            // transparency in the GIFs.  But there are a couple of problems
+            // for now:
+            //
+            // 1) Animating with a disposal method of "1" means that new frames
+            // just get "added" to the last one, so if there's transparency you
+            // can still see the old frame underneath, which doesn't seem
+            // right. This might be fixable by using a disposal method of 2
+            // (which restores to background color after the frame) and setting
+            // a background color that's also transparent. This will require
+            // adding a global color table, since the background color comes
+            // from the global color table.
+            //
+            // 2) The lines we're drawing on canvas are "fuzzy", containing
+            // areas of partial but not complete transparency. GIFs appear to
+            // only support pixels that are either opaque or transparent, not
+            // in between.
             const ctx = c.getContext('2d');
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, c.width, c.height);

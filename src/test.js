@@ -45,6 +45,17 @@ class Test extends React.Component {
                     {src: 'images/animation3.gif', delay: 1},
                 ],
             },
+
+            {
+                desc: 'Animation with transparency.',
+                frames: [
+                    {src: 'images/transparency0.png', delay: 100},
+                    {src: 'images/transparency1.png', delay: 100},
+                    {src: 'images/transparency2.png', delay: 100},
+                    {src: 'images/transparency3.png', delay: 100},
+                    {src: 'images/transparency4.png', delay: 100},
+                ],
+            },
         ];
 
         const testers = tests.map((t, k) =>

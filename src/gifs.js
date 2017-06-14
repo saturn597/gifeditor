@@ -35,13 +35,22 @@ class Frame {
         const imageTop = 0;
 
         const ctx = this.canvas.getContext('2d');
-        const {indices, colors} = toIndices(ctx);
+        const {indices, colors, transparentIndex} = toIndices(ctx);
 
         if (colors.length > 256) {
             throw 'Too many colors in frame.';
         }
 
         let result = [];
+
+        // Start by adding a graphic control extension to the result.
+        //
+        // TODO: getGCE could probably be folded in as a frame method, and the
+        // results included in frame.getData. Also, getGCE doesn't need to be
+        // there if the GIF has only 1 frame. Also, frame.disposal should
+        // probably be 0 if there's only 1 frame, if we have a GCE at all -
+        // maybe generate an exception?
+        result.push(...getGCE(this.delay, this.disposal, transparentIndex));
 
         const {
             colorTable,
@@ -205,12 +214,6 @@ function getGifData(frames, repeats, width, height) {
     }
 
     for (let frame of frames) {
-        // TODO: getGCE could probably be folded in as a frame method, and the
-        // results included in frame.getData. Also, getGCE doesn't need to be
-        // there if the GIF has only 1 frame. Also, frame.disposal should
-        // technically be 0 if there's only 1 frame - maybe generate an
-        // exception?
-        data.push(...getGCE(frame.delay, frame.disposal));
         data = data.concat(frame.getData());
     }
 
@@ -512,6 +515,11 @@ function toIndices(ctx) {
     // represented by indices of "0", etc. Each color is represented as a 3
     // element array (containing the red, green, and blue components of the
     // color, in that order).
+    //
+    // 3) a transparent index, indicating which index corresponds with a
+    // transparent pixel. This will be "undefined" if the canvas contained no
+    // transparent pixels.
+
 
     const d = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data;
 
@@ -520,16 +528,33 @@ function toIndices(ctx) {
 
     const indices = [];
 
+    let transparentIndex;
+
+    // GIF pixels must be fully transparent or fully opaque.
+    const allowedOpacities = [0, 255];
     let opacityWarningShown = false;
+
     for (let i = 0; i < d.length; i+=4) {
-        if (!opacityWarningShown && d[i+3] !== 255) {  // TODO: could support transparent pixels
-            console.log('warning! non-opaque pixels');
+        if (!opacityWarningShown && !allowedOpacities.includes(d[i+3])) {
+            console.log('warning! semi-opaque pixels');
             opacityWarningShown = true;
         }
 
+        // In canvas image data, the elements d[i]->d[i+2] are the red, green,
+        // and blue components of the pixel.  d[i+3] is the opacity.
         const current = [d[i], d[i+1], d[i+2]];
 
         let index = colorMap.get(current.join(','));
+
+        if (d[i+3] === 0) {
+            // Deal with transparent pixel
+            if (transparentIndex === undefined) {
+                transparentIndex = colors.length;
+                colors.push(current);
+            }
+            index = transparentIndex;
+        }
+
         if (index === undefined) {
             index = colors.length;
             colors.push(current);
@@ -538,7 +563,7 @@ function toIndices(ctx) {
         indices.push(index);
     }
 
-    return {indices, colors};
+    return {indices, colors, transparentIndex};
 }
 
 
