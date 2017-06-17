@@ -20,6 +20,10 @@ canvas {
     width: 150px;
 }
 
+#selected {
+    background-color: yellow;
+}
+
 img {
     border: 1px solid navy;
 }
