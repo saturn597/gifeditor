@@ -53,7 +53,7 @@ class GifEditor extends React.Component {
 
         const frameData = [];
         for (let i = 0; i < this.props.initialFrameCount; i++) {
-            frameData.push(this.newFrameData());
+            frameData.push(this.newFrameData(this.props));
         }
 
         this.state = {
@@ -68,26 +68,28 @@ class GifEditor extends React.Component {
     }
 
     addFrame() {
-        this.setState((state) => ({
-            frameData: state.frameData.concat(this.newFrameData())
+        this.setState((state, props) => ({
+            frameData: state.frameData.concat(this.newFrameData(props))
         }));
     }
 
     drawingUpdated(newCanvas) {
-        const ind = this.state.currentFrame;
-        const currentFrame = this.state.frameData[ind];
-        const newFrame = update(currentFrame, {canvas: {$set: newCanvas}});
+        this.setState((state) => {
+            const ind = state.currentFrame;
+            const currentFrame = state.frameData[ind];
+            const newFrame = update(currentFrame, {canvas: {$set: newCanvas}});
 
-        const newFrameData = update(this.state.frameData,
-                {$splice: [[ind, 1, newFrame]]});
+            const frameData = update(state.frameData,
+                    {$splice: [[ind, 1, newFrame]]});
 
-        this.setState({frameData: newFrameData});
+            return {frameData};
+        });
     }
 
-    newFrameData() {
+    newFrameData(props) {
         const c = document.createElement('canvas');
-        c.width = this.props.width;
-        c.height = this.props.height;
+        c.width = props.width;
+        c.height = props.height;
 
         // TODO: For now, we'll fill everything in with a background color, so
         // that there are no transparent areas.  We COULD allow transparency in
@@ -112,8 +114,8 @@ class GifEditor extends React.Component {
 
         return {
             canvas: c,
-            delay: this.props.defaultDelay,
-            disposal: this.props.defaultDisposal,
+            delay: props.defaultDelay,
+            disposal: props.defaultDisposal,
         };
     }
 
@@ -136,12 +138,18 @@ class GifEditor extends React.Component {
     }
 
     updateGif() {
-        const frames = this.state.frameData.map((f) =>
-                new Frame(f.canvas, f.delay, f.disposal));
+        this.setState((state, props) => {
+            const frames = state.frameData.map((f) =>
+                    new Frame(f.canvas, f.delay, f.disposal));
 
-        const url = getGifUrl(frames, 0, this.props.width, this.props.height);
+            const gifData = getGifUrl(
+                    frames,
+                    0,
+                    props.width,
+                    props.height);
 
-        this.setState({gifData: url});
+            return {gifData};
+        });
     }
 
     render() {
