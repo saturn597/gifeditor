@@ -28,6 +28,10 @@ img {
     border: 1px solid navy;
 }
 
+.invalidInput {
+    background-color: darksalmon;
+}
+
 .test {
     border-radius: 15px;
     margin: 20px;

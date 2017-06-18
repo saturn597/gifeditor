@@ -23,9 +23,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 class FrameInfo extends React.Component {
+    stopPropagation(e) {
+        e.stopPropagation();
+    }
+
     render() {
         const id = this.props.selected ? 'selected' : null;
-        const removeFrame = (e) => {
+
+        const myDelayChange = (e) =>
+            this.props.onDelayChange(
+                    e.target.value,
+                    e.target.checkValidity());
+
+        const myRemoveFrame = (e) => {
             e.stopPropagation();
             this.props.removeFrame();
         };
@@ -35,11 +45,21 @@ class FrameInfo extends React.Component {
                 id={id}
                 onClick={this.props.selectFrame}>
 
-                Duration: {this.props.frame.delay}
+                Duration: <input type="number"
+                    className={this.props.frame.valid ? "validInput" :
+                        "invalidInput"}
+                    max={65535}
+                    min={0}
+                    onChange={myDelayChange}
+                    onClick={this.stopPropagation}
+                    required={true}
+                    step={1}
+                    value={this.props.frame.delay} />
+
                 <img src={this.props.frame.canvas.toDataURL()}
                     width="100"
                     height="100" />
-                <button onClick={removeFrame}>
+                <button onClick={myRemoveFrame}>
                     Remove Frame
                 </button>
             </div>
@@ -63,6 +83,7 @@ class GifEditor extends React.Component {
         };
 
         this.addFrame = this.addFrame.bind(this);
+        this.changeDelay = this.changeDelay.bind(this);
         this.drawingUpdated = this.drawingUpdated.bind(this);
         this.updateGif = this.updateGif.bind(this);
     }
@@ -81,6 +102,19 @@ class GifEditor extends React.Component {
 
             const frameData = update(state.frameData,
                     {$splice: [[ind, 1, newFrame]]});
+
+            return {frameData};
+        });
+    }
+
+    changeDelay(index, value, valid) {
+        this.setState((state) => {
+            const frame = state.frameData[index];
+            const newFrame = update(frame,
+                    {delay: {$set: value}, valid: {$set: valid}});
+
+            const frameData = update(state.frameData,
+                    {$splice: [[index, 1, newFrame]]});
 
             return {frameData};
         });
@@ -116,6 +150,7 @@ class GifEditor extends React.Component {
             canvas: c,
             delay: props.defaultDelay,
             disposal: props.defaultDisposal,
+            valid: true,
         };
     }
 
@@ -139,8 +174,16 @@ class GifEditor extends React.Component {
 
     updateGif() {
         this.setState((state, props) => {
+            // Note, the "number" input allows scientific notation, but
+            // parseInt doesn't get it.  (It interprets 1e3 as 1, for example).
+            // parseFloat works better.  TODO: could do some validation of
+            // delay values here, in case the user's browser doesn't support
+            // number inputs.
             const frames = state.frameData.map((f) =>
-                    new Frame(f.canvas, f.delay, f.disposal));
+                    new Frame(
+                        f.canvas,
+                        Math.floor(parseFloat(f.delay, 10)),
+                        f.disposal));
 
             const gifData = getGifUrl(
                     frames,
@@ -153,6 +196,11 @@ class GifEditor extends React.Component {
     }
 
     render() {
+        const invalidFrames = this.state.frameData.some((f) => !f.valid);
+        const warning = invalidFrames ?
+            'Durations must be integers between 0 and 65535 inclusive' :
+            null;
+
         const currentFrame = this.state.frameData[this.state.currentFrame];
 
         const frameDisplay = [];
@@ -162,6 +210,8 @@ class GifEditor extends React.Component {
             frameDisplay.push(<FrameInfo
                     frame={f}
                     key={i}
+                    onDelayChange={(value, valid) =>
+                        this.changeDelay(frameNum, value, valid)}
                     selectFrame={() => this.setState({currentFrame: frameNum})}
                     removeFrame={() => this.removeFrame(frameNum)}
                     selected={f === currentFrame} />);
@@ -175,8 +225,11 @@ class GifEditor extends React.Component {
                 width={this.props.width}
                 height={this.props.height} />
             {frameDisplay}
+            {warning}
             <button onClick={this.addFrame}>Add frame</button>
-            <button onClick={this.updateGif}>Update GIF</button>
+            <button onClick={this.updateGif} disabled={invalidFrames}>
+                Update GIF
+            </button>
             <img src={this.state.gifData} />
         </div>;
     }
