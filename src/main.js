@@ -56,7 +56,8 @@ class FrameInfo extends React.Component {
                     step={1}
                     value={this.props.frame.delay} />
 
-                <img src={this.props.frame.canvas.toDataURL()}
+                <Preview
+                    canvas={this.props.frame.canvas}
                     width="100"
                     height="100" />
                 <button onClick={myRemoveFrame}>
@@ -232,5 +233,24 @@ class GifEditor extends React.Component {
             </button>
             <img src={this.state.gifData} />
         </div>;
+    }
+}
+
+
+class Preview extends React.Component {
+    shouldComponentUpdate(nextProps, nextState) {
+        if (this.props.canvas === nextProps.canvas &&
+                this.props.width === nextProps.width &&
+                this.props.height === nextProps.height) {
+            return false;
+        }
+        return true;
+    }
+
+    render() {
+        return <img
+            src={this.props.canvas.toDataURL()}
+            width={this.props.width}
+            height={this.props.height} />;
     }
 }
