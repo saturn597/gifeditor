@@ -1,35 +1,89 @@
 body {
-    background-color: orange;
+    background-color: lavenderblush;
+    font-size: 10px;
+    text-align: center;
+}
+
+.bigButton {
+    background-color: navy;
+    border: none;
+    border-radius: 15px;
+    color: white;
+    font-size: 25px;
+    padding: 15px;
+}
+
+.bigButton:hover {
+    background-color: #0f0f80;
+}
+
+.bigButton:active {
+    background-color: #000040;
 }
 
 canvas {
-    border: 1px solid red;
+    border: 5px outset red;
     display: block;
+    margin: 25px auto;
+}
+
+#downArrow {
+    color: navy;
+    font-size: 75px;
+}
+
+#editor {
+    margin-bottom: 50px;
+}
+
+#frameList {
+    background-color: darkgray;
+    border: 5px outset lightgray;
+    list-style-type: none;
+    margin: 0 auto;
+    overflow: scroll;
+    padding: 0;
+    text-align: left;
+    white-space: nowrap;
+    width: 800px;
 }
 
 .frameInfo {
-    background-color: cadetblue;
-    border: 1px solid navy;
-    border-radius: 15px;
-
+    background-color: lightblue;
+    border-right: 1px solid white;
+    display: inline-block;
     font-size: 15px;
     font-family: "Helvetica Neue",Helvetica,sans-serif;
-    margin: 10px 0;
+    margin: 0;
+    padding: 20px 0;
     text-align: center;
-
-    width: 150px;
+    width: 200px;
 }
 
-#selected {
-    background-color: yellow;
+.frameInfo:hover {
+    background-color: powderblue;
 }
 
-img {
-    border: 1px solid navy;
+#gifContainer {
+    background-color: white;
+    border: 5px solid navy;
+    margin: 0 auto;
+}
+
+input {
+    width: 50px;
 }
 
 .invalidInput {
     background-color: darksalmon;
+}
+
+#selected {
+    background-color: cadetblue;
+}
+
+#selected:hover {
+    background-color: #67a7a8;
 }
 
 .test {

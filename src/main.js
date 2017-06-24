@@ -41,29 +41,34 @@ class FrameInfo extends React.Component {
         };
 
         return (
-            <div className="frameInfo"
+            <li className="frameInfo"
                 id={id}
                 onClick={this.props.selectFrame}>
-
-                Duration: <input type="number"
-                    className={this.props.frame.valid ? "validInput" :
-                        "invalidInput"}
-                    max={65535}
-                    min={0}
-                    onChange={myDelayChange}
-                    onClick={this.stopPropagation}
-                    required={true}
-                    step={1}
-                    value={this.props.frame.delay} />
 
                 <Preview
                     canvas={this.props.frame.canvas}
                     width="100"
                     height="100" />
+
+                <div className="delayControl">
+                    <label>Duration:
+                        <input type="number"
+                        className={this.props.frame.valid ? "validInput" :
+                            "invalidInput"}
+                        max={65535}
+                        min={0}
+                        onChange={myDelayChange}
+                        onClick={this.stopPropagation}
+                        required={true}
+                        step={1}
+                        value={this.props.frame.delay} />
+                    </label>
+                </div>
+
                 <button onClick={myRemoveFrame}>
                     Remove Frame
                 </button>
-            </div>
+            </li>
         );
     }
 }
@@ -204,11 +209,11 @@ class GifEditor extends React.Component {
 
         const currentFrame = this.state.frameData[this.state.currentFrame];
 
-        const frameDisplay = [];
+        const frameListItems = [];
         let i = 0;
         for (let f of this.state.frameData) {
             const frameNum = i;
-            frameDisplay.push(<FrameInfo
+            frameListItems.push(<FrameInfo
                     frame={f}
                     key={i}
                     onDelayChange={(value, valid) =>
@@ -219,20 +224,43 @@ class GifEditor extends React.Component {
             i++;
         }
 
-        return <div>
-            <DrawCanvas
-                drawingUpdated={this.drawingUpdated}
-                content={currentFrame.canvas}
-                width={this.props.width}
-                height={this.props.height} />
-            {frameDisplay}
-            {warning}
-            <button onClick={this.addFrame}>Add frame</button>
-            <button onClick={this.updateGif} disabled={invalidFrames}>
-                Update GIF
-            </button>
-            <img src={this.state.gifData} />
-        </div>;
+        const gif = this.state.gifData ?
+            <img src={this.state.gifData} /> :
+            null;
+
+        const gifContainerStyle = {
+            "width": this.props.width,
+            "height": this.props.height,
+        };
+
+        return (
+            <main>
+            <div id="editor">
+                <DrawCanvas
+                    drawingUpdated={this.drawingUpdated}
+                    content={currentFrame.canvas}
+                    width={this.props.width}
+                    height={this.props.height} />
+                <ol id="frameList">
+                    {frameListItems}
+                </ol>
+                <div id="frameControls">
+                    <button onClick={this.addFrame}>Add frame</button>
+                </div>
+                {warning}
+            </div>
+            <div id="output">
+                <button onClick={this.updateGif} disabled={invalidFrames}
+                    className="bigButton">
+                    {this.state.gifData ? 'Update GIF' : 'Create GIF'}
+                </button>
+                <div id="downArrow">
+                    ▼
+                </div>
+                <div id="gifContainer" style={gifContainerStyle}>{gif}</div>
+            </div>
+            </main>
+        );
     }
 }
 
