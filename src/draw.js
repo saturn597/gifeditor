@@ -68,6 +68,8 @@ class DrawCanvas extends React.Component {
     //
     // - a drawingUpdated method. This gets called every time the user finishes
     // drawing a line (after the tracking canvas is updated).
+    //
+    // - a brush - this can be any object that's drawable by canvasContext.drawImage.
 
     constructor(props) {
         super(props);
@@ -82,6 +84,14 @@ class DrawCanvas extends React.Component {
     }
 
     componentDidMount() {
+        // Image smoothing can introduce semi-transparent pixels (which GIFs
+        // can't handle), and increases the number of colors (which we might
+        // not want because GIFs can only handle 256 colors in a given frame).
+        // TODO: Caution, further investigation may be warranted since
+        // imageSmoothingEnabled is "experimental":
+        // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/imageSmoothingEnabled
+        this.context.imageSmoothingEnabled = false;
+
         this.context.drawImage(this.props.content, 0, 0);
     }
 
@@ -95,7 +105,13 @@ class DrawCanvas extends React.Component {
     draw(pts) {
         const context = this.context;
         context.beginPath();
+        const brush = this.props.brush;
         for (let pt of pts) {
+            context.drawImage(
+                    brush,
+                    pt.x - brush.width / 2,
+                    pt.y - brush.height / 2
+            );
             /*context.arc(
                     pt.x,
                     pt.y,
@@ -103,7 +119,7 @@ class DrawCanvas extends React.Component {
                     0,
                     2 * Math.PI
                    );*/
-            context.rect(pt.x, pt.y, 5, 5);
+            //context.rect(pt.x, pt.y, 5, 5);
         }
         context.fill();
     }

@@ -22,6 +22,39 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
+function createRoundBrush(radius, color = [0, 0, 0, 255]) {
+    // Returns a canvas containing a "circle" of the given color, with the
+    // given radius. The rest of the canvas outside the circle will be
+    // transparent. The canvas will only contain the specified color - other
+    // pixels will be fully transparent - no blending/antialiasing (so we can't
+    // use the built-in arc drawing method).
+    //
+    // Color defaults to opaque black if unspecified.
+
+    const c = document.createElement('canvas');
+    const ctx = c.getContext('2d');
+
+    c.width = radius * 2;
+    c.height = radius * 2;
+
+    const id = ctx.createImageData(c.width, c.height);
+
+    for (let x = 0; x < c.width; x++) {
+        for (let y = 0; y < c.height; y++) {
+            // If the distance from (x, y) to the center of our canvas is less
+            // than the radius we want, then color that pixel in.
+            if ((c.width / 2 - x)**2 + (c.height / 2 - y)**2 < radius**2) {
+                id.data.set(color, y * 4 * c.height + x * 4);
+            }
+        }
+    }
+
+    ctx.putImageData(id, 0, 0);
+
+    return c;
+}
+
+
 class FrameInfo extends React.Component {
     stopPropagation(e) {
         e.stopPropagation();
@@ -73,6 +106,7 @@ class FrameInfo extends React.Component {
     }
 }
 
+
 class GifEditor extends React.Component {
     constructor(props) {
         super(props);
@@ -83,6 +117,7 @@ class GifEditor extends React.Component {
         }
 
         this.state = {
+            brush: createRoundBrush(5),
             currentFrame: 0,
             frameData,
             gifData: ''
@@ -142,12 +177,19 @@ class GifEditor extends React.Component {
         // background color after the frame) and setting a background color
         // that's also transparent. This will require adding a global color
         // table, since the background color comes from the global color table.
+        // NOTE: May not REQUIRE adding a global color table. When restoring to
+        // background color, a transparent background color appears be assumed
+        // in the absence of a global color table, at least in Firefox, Chrome,
+        // ImageMagick in Ubuntu.
         //
-        // 2) The lines we're drawing on canvas are "fuzzy", containing areas
-        // of partial but not complete transparency. GIFs appear to only
-        // support pixels that are either opaque or transparent, not in
-        // between. By filling everything up with white to begin with, we
-        // prevent any areas of the canvas from having partial transparency.
+        // 2) GIFs appear to only support pixels that are either opaque or
+        // transparent, not in between. The canvas interface wants to
+        // smooth/antialias everything, which can lead to semi-transparent
+        // areas. By filling everything up with white to begin with, we prevent
+        // any areas of the canvas from having partial transparency.  However,
+        // we are now preventing this altogether by drawing the brush with
+        // context.drawImage and setting imageSmoothingEnabled to false. (Note
+        // this may not work in all browsers).
         const ctx = c.getContext('2d');
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, c.width, c.height);
@@ -237,6 +279,7 @@ class GifEditor extends React.Component {
             <main>
             <div id="editor">
                 <DrawCanvas
+                    brush={this.state.brush}
                     drawingUpdated={this.drawingUpdated}
                     content={currentFrame.canvas}
                     width={this.props.width}
