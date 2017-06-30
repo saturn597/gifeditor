@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import update from 'immutability-helper'
@@ -23,13 +24,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 function createRoundBrush(radius, color = [0, 0, 0, 255]) {
-    // Returns a canvas containing a "circle" of the given color, with the
-    // given radius. The rest of the canvas outside the circle will be
+    // Returns a canvas containing a "circle" of the given color, with about
+    // the given radius. The rest of the canvas outside the circle will be
     // transparent. The canvas will only contain the specified color - other
     // pixels will be fully transparent - no blending/antialiasing (so we can't
     // use the built-in arc drawing method).
     //
     // Color defaults to opaque black if unspecified.
+    //
+    // TODO: the circles produced could probably be closer to the specified
+    // radius.
 
     const c = document.createElement('canvas');
     const ctx = c.getContext('2d');
@@ -52,6 +56,75 @@ function createRoundBrush(radius, color = [0, 0, 0, 255]) {
     ctx.putImageData(id, 0, 0);
 
     return c;
+}
+
+
+class NumberEditor extends React.Component {
+    // A component to allow the user to set a number within a specific range,
+    // with a specific step.
+    //
+    // Provide an onChange function in props to receive newly set values - by
+    // default this will only be called when the user enters valid input.
+    //
+    // TODO: consider using this class for the duration control
+    constructor(props) {
+        super(props);
+        this.state = {
+            'valid': true,
+            'value': props.initialValue,
+        };
+
+        this.onChange = this.onChange.bind(this);
+    }
+
+    onChange(e) {
+        const valid = e.target.checkValidity();
+
+        this.setState({
+            valid,
+            'value': e.target.value,
+        });
+
+        if (valid) {
+            this.props.onChange(e.target.valueAsNumber);
+        } else if (this.props.updateWhenInvalid) {
+            this.props.onChange(null);
+        }
+    }
+
+    render() {
+        const valid = this.state.valid;
+        return (
+           <div>
+               <label>{this.props.label}
+                   <input
+                       type="number"
+                       className={valid ? "validInput" : "invalidInput"}
+                       max={this.props.max}
+                       min={this.props.min}
+                       onChange={this.onChange}
+                       required={this.props.required}
+                       step={this.props.step}
+                       value={this.state.value}
+                   />
+               </label>
+               <div className="warning">{valid ? null : this.props.usage}</div>
+           </div>
+        );
+    }
+
+}
+
+NumberEditor.propTypes =
+{
+    initialValue: PropTypes.number,
+    label: PropTypes.string,
+    max: PropTypes.number,
+    min: PropTypes.number,
+    onChange: PropTypes.func.isRequired,
+    required: PropTypes.bool,
+    step: PropTypes.number,
+    updateWhenInvalid: PropTypes.bool,
 }
 
 
@@ -117,13 +190,14 @@ class GifEditor extends React.Component {
         }
 
         this.state = {
-            brush: createRoundBrush(5),
+            brushSize: 5,
             currentFrame: 0,
             frameData,
             gifData: ''
         };
 
         this.addFrame = this.addFrame.bind(this);
+        this.changeBrushSize = this.changeBrushSize.bind(this);
         this.changeDelay = this.changeDelay.bind(this);
         this.drawingUpdated = this.drawingUpdated.bind(this);
         this.updateGif = this.updateGif.bind(this);
@@ -146,6 +220,10 @@ class GifEditor extends React.Component {
 
             return {frameData};
         });
+    }
+
+    changeBrushSize(value) {
+        this.setState({'brushSize': value});
     }
 
     changeDelay(index, value, valid) {
@@ -278,8 +356,19 @@ class GifEditor extends React.Component {
         return (
             <main>
             <div id="editor">
+                <NumberEditor
+                    label="Brush size: "
+                    max={99}
+                    min={1}
+                    onChange={this.changeBrushSize}
+                    required={true}
+                    step={1}
+                    initialValue={this.state.brushSize}
+                    usage="Brush size must be an integer from 1 to 99."
+                />
+
                 <DrawCanvas
-                    brush={this.state.brush}
+                    brush={createRoundBrush(this.state.brushSize)}
                     drawingUpdated={this.drawingUpdated}
                     content={currentFrame.canvas}
                     width={this.props.width}

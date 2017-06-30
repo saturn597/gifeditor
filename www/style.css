@@ -1,6 +1,6 @@
 body {
     background-color: lavenderblush;
-    font-size: 10px;
+    font-size: 15px;
     text-align: center;
 }
 
@@ -24,7 +24,7 @@ body {
 canvas {
     border: 5px outset red;
     display: block;
-    margin: 25px auto;
+    margin: 0 auto 25px auto;
 }
 
 #downArrow {
@@ -33,7 +33,7 @@ canvas {
 }
 
 #editor {
-    margin-bottom: 50px;
+    margin: 50px 0;
 }
 
 #frameList {
@@ -52,7 +52,6 @@ canvas {
     background-color: lightblue;
     border-right: 1px solid white;
     display: inline-block;
-    font-size: 15px;
     font-family: "Helvetica Neue",Helvetica,sans-serif;
     margin: 0;
     padding: 20px 0;
@@ -102,4 +101,8 @@ input {
     background-color: lightcyan;
     border-radius: 15px;
     padding: 10px;
+}
+
+.warning {
+    color: red;
 }
