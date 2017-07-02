@@ -65,8 +65,6 @@ class NumberEditor extends React.Component {
     //
     // Provide an onChange function in props to receive newly set values - by
     // default this will only be called when the user enters valid input.
-    //
-    // TODO: consider using this class for the duration control
     constructor(props) {
         super(props);
         this.state = {
@@ -103,6 +101,7 @@ class NumberEditor extends React.Component {
                        max={this.props.max}
                        min={this.props.min}
                        onChange={this.onChange}
+                       onClick={this.props.onInputClick}
                        required={this.props.required}
                        step={this.props.step}
                        value={this.state.value}
@@ -122,6 +121,7 @@ NumberEditor.propTypes =
     max: PropTypes.number,
     min: PropTypes.number,
     onChange: PropTypes.func.isRequired,
+    onInputClick: PropTypes.func,
     required: PropTypes.bool,
     step: PropTypes.number,
     updateWhenInvalid: PropTypes.bool,
@@ -135,11 +135,6 @@ class FrameInfo extends React.Component {
 
     render() {
         const id = this.props.selected ? 'selected' : null;
-
-        const myDelayChange = (e) =>
-            this.props.onDelayChange(
-                    e.target.value,
-                    e.target.checkValidity());
 
         const myRemoveFrame = (e) => {
             e.stopPropagation();
@@ -156,20 +151,17 @@ class FrameInfo extends React.Component {
                     width="100"
                     height="100" />
 
-                <div className="delayControl">
-                    <label>Duration:
-                        <input type="number"
-                        className={this.props.frame.valid ? "validInput" :
-                            "invalidInput"}
+                <NumberEditor
+                        initialValue={this.props.frame.delay}
+                        label="Duration:"
                         max={65535}
                         min={0}
-                        onChange={myDelayChange}
-                        onClick={this.stopPropagation}
+                        onChange={this.props.onDelayChange}
+                        onInputClick={this.stopPropagation}
                         required={true}
                         step={1}
-                        value={this.props.frame.delay} />
-                    </label>
-                </div>
+                        updateWhenInvalid={true}
+                />
 
                 <button onClick={myRemoveFrame}>
                     Remove Frame
@@ -226,11 +218,11 @@ class GifEditor extends React.Component {
         this.setState({'brushSize': value});
     }
 
-    changeDelay(index, value, valid) {
+    changeDelay(index, value) {
         this.setState((state) => {
             const frame = state.frameData[index];
             const newFrame = update(frame,
-                    {delay: {$set: value}, valid: {$set: valid}});
+                    {delay: {$set: value}});
 
             const frameData = update(state.frameData,
                     {$splice: [[index, 1, newFrame]]});
@@ -276,7 +268,6 @@ class GifEditor extends React.Component {
             canvas: c,
             delay: props.defaultDelay,
             disposal: props.defaultDisposal,
-            valid: true,
         };
     }
 
@@ -322,7 +313,8 @@ class GifEditor extends React.Component {
     }
 
     render() {
-        const invalidFrames = this.state.frameData.some((f) => !f.valid);
+        const invalidFrames = this.state.frameData.some((f) =>
+                f.delay === null);
         const warning = invalidFrames ?
             'Durations must be integers between 0 and 65535 inclusive' :
             null;
@@ -336,8 +328,8 @@ class GifEditor extends React.Component {
             frameListItems.push(<FrameInfo
                     frame={f}
                     key={i}
-                    onDelayChange={(value, valid) =>
-                        this.changeDelay(frameNum, value, valid)}
+                    onDelayChange={(value) =>
+                        this.changeDelay(frameNum, value)}
                     selectFrame={() => this.setState({currentFrame: frameNum})}
                     removeFrame={() => this.removeFrame(frameNum)}
                     selected={f === currentFrame} />);
