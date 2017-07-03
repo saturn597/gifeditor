@@ -6,7 +6,7 @@ body {
 
 .bigButton {
     background-color: navy;
-    border: none;
+    border: 4px midnightblue outset;
     border-radius: 15px;
     color: white;
     font-size: 25px;
@@ -19,12 +19,42 @@ body {
 
 .bigButton:active {
     background-color: #000040;
+    border: 4px midnightblue inset;
+}
+
+#brushSize {
+    display: inline-block;
 }
 
 canvas {
     border: 5px outset red;
     display: block;
     margin: 0 auto 25px auto;
+}
+
+#colorPicker {
+    border: 1px inset #aaa;
+    display: inline-block;
+    position: relative;
+    vertical-align: bottom;
+    height: 20px;
+    width: 50px;
+}
+
+#colorList {
+    left: -143px;
+    top: 20px;
+    line-height: 0px;
+    position: absolute;
+    width: 336px;
+}
+
+#colorList div {
+    border: 1px solid black;
+    display: inline-block;
+    margin: 0 0 -1px -1px;
+    height: 20px;
+    width: 20px;
 }
 
 #downArrow {

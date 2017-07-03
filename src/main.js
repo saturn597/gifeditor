@@ -59,6 +59,69 @@ function createRoundBrush(radius, color = [0, 0, 0, 255]) {
 }
 
 
+class ColorEditor extends React.Component {
+    // A tool for selecting colors. Unlike the HTML5 color input, allows only a
+    // certain set of colors (specified in props) to be selected (useful for
+    // GIFs, which can only have 256 colors in a frame). TODO: could allow full
+    // range of 16^3 colors, but then programmatically reduce the colors in the
+    // image before converting to a GIF.
+    constructor(props) {
+        super(props);
+
+        this.state = {expanded: false};
+
+        this.expand = this.expand.bind(this);
+    }
+
+    expand() {
+        this.setState((state, props) => {
+            return {
+                expanded: !this.state.expanded,
+            };
+        });
+    }
+
+    render() {
+        const divs = [];
+        if (this.state.expanded) {
+            for (let c of this.props.colors) {
+                const style = {
+                    backgroundColor: `rgba(${c.toString()})`,
+                }
+                divs.push(<div
+                        className="colorSelection"
+                        key={c.toString()}
+                        onClick={() => this.props.setColor(c)}
+                        style={style}
+                        />);
+            }
+        }
+        const colorList = this.state.expanded ?
+            <div id="colorList">{divs}</div> :
+            null;
+
+        const style = {
+            backgroundColor: `rgba(${this.props.currentColor.toString()})`,
+        };
+
+        return (
+                <span onClick={this.expand}>{this.props.label}
+                    <div id="colorPicker" style={style}>
+                        {colorList}
+                    </div>
+                </span>
+        );
+    }
+}
+
+ColorEditor.propTypes =
+{
+    setColor: PropTypes.func.isRequired,
+    colors: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)),
+    currentColor: PropTypes.arrayOf(PropTypes.number),
+};
+
+
 class NumberEditor extends React.Component {
     // A component to allow the user to set a number within a specific range,
     // with a specific step.
@@ -93,7 +156,7 @@ class NumberEditor extends React.Component {
     render() {
         const valid = this.state.valid;
         return (
-           <div>
+           <div id={this.props.id}>
                <label>{this.props.label}
                    <input
                        type="number"
@@ -183,6 +246,7 @@ class GifEditor extends React.Component {
 
         this.state = {
             brushSize: 5,
+            color: [0, 0, 0, 255],
             currentFrame: 0,
             frameData,
             gifData: ''
@@ -192,6 +256,7 @@ class GifEditor extends React.Component {
         this.changeBrushSize = this.changeBrushSize.bind(this);
         this.changeDelay = this.changeDelay.bind(this);
         this.drawingUpdated = this.drawingUpdated.bind(this);
+        this.setColor = this.setColor.bind(this);
         this.updateGif = this.updateGif.bind(this);
     }
 
@@ -289,6 +354,10 @@ class GifEditor extends React.Component {
         });
     }
 
+    setColor(color) {
+        this.setState({color});
+    }
+
     updateGif() {
         this.setState((state, props) => {
             // Note, the "number" input allows scientific notation, but
@@ -345,10 +414,34 @@ class GifEditor extends React.Component {
             "height": this.props.height,
         };
 
+        // Rough way of filling in some color options. TODO: could see if there
+        // are better ways of picking a palette.
+        const colorOptions = [
+            [255, 255, 255, 255],
+            [200, 200, 200, 255],
+            [150, 150, 150, 255],
+            [100, 100, 100, 255],
+            [50, 50, 50, 255],
+        ];
+
+        for (let r = 0; r < 6; r++) {
+            for (let g = 0; g < 8; g++) {
+                for (let b = 0; b < 5; b++) {
+                    colorOptions.push([
+                            Math.floor(256 / 6 * r),
+                            Math.floor(256 / 8 * g),
+                            Math.floor(256 / 5 * b),
+                            255,
+                    ]);
+                }
+            }
+        }
+
         return (
             <main>
             <div id="editor">
                 <NumberEditor
+                    id="brushSize"
                     label="Brush size: "
                     max={99}
                     min={1}
@@ -359,8 +452,16 @@ class GifEditor extends React.Component {
                     usage="Brush size must be an integer from 1 to 99."
                 />
 
+                <ColorEditor
+                    colors={colorOptions}
+                    currentColor={this.state.color}
+                    label="Color: "
+                    setColor={this.setColor}
+                />
+
                 <DrawCanvas
-                    brush={createRoundBrush(this.state.brushSize)}
+                    brush={createRoundBrush(this.state.brushSize,
+                            this.state.color)}
                     drawingUpdated={this.drawingUpdated}
                     content={currentFrame.canvas}
                     width={this.props.width}
