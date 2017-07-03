@@ -9,6 +9,13 @@ import {DrawCanvas} from './draw.js';
 require('babel-polyfill');
 
 
+const MAXBRUSHSIZE=99;
+const MINBRUSHSIZE=1;
+
+const MAXDELAY=65535;
+const MINDELAY=0;
+
+
 document.addEventListener('DOMContentLoaded', function() {
     ReactDOM.render(
             <GifEditor
@@ -116,9 +123,10 @@ class ColorEditor extends React.Component {
 
 ColorEditor.propTypes =
 {
-    setColor: PropTypes.func.isRequired,
     colors: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)),
     currentColor: PropTypes.arrayOf(PropTypes.number),
+    label: PropTypes.string,
+    setColor: PropTypes.func.isRequired,
 };
 
 
@@ -148,7 +156,7 @@ class NumberEditor extends React.Component {
 
         if (valid) {
             this.props.onChange(e.target.valueAsNumber);
-        } else if (this.props.updateWhenInvalid) {
+        } else {
             this.props.onChange(null);
         }
     }
@@ -170,7 +178,6 @@ class NumberEditor extends React.Component {
                        value={this.state.value}
                    />
                </label>
-               <div className="warning">{valid ? null : this.props.usage}</div>
            </div>
         );
     }
@@ -217,13 +224,12 @@ class FrameInfo extends React.Component {
                 <NumberEditor
                         initialValue={this.props.frame.delay}
                         label="Duration:"
-                        max={65535}
-                        min={0}
+                        max={MAXDELAY}
+                        min={MINDELAY}
                         onChange={this.props.onDelayChange}
                         onInputClick={this.stopPropagation}
                         required={true}
                         step={1}
-                        updateWhenInvalid={true}
                 />
 
                 <button onClick={myRemoveFrame}>
@@ -382,11 +388,29 @@ class GifEditor extends React.Component {
     }
 
     render() {
+        const warnings = [];
+
+        if (this.state.brushSize === null) {
+            warnings.push(`Brush size must be an integer between ${MINBRUSHSIZE} and ${MAXBRUSHSIZE} inclusive.`);
+        }
+
         const invalidFrames = this.state.frameData.some((f) =>
                 f.delay === null);
-        const warning = invalidFrames ?
-            'Durations must be integers between 0 and 65535 inclusive' :
-            null;
+        if (invalidFrames) {
+            warnings.push(`Durations must be integers between ${MINDELAY} and ${MAXDELAY} inclusive.`);
+        }
+
+        let warningList = null;
+        if (warnings.length > 0) {
+            warningList = (
+                <div id="warnings">
+                    <h1>Whoops!</h1>
+                    <ul>
+                        {warnings.map(w => <li key={w}>{w}</li>)}
+                    </ul>
+                </div>
+            );
+        }
 
         const currentFrame = this.state.frameData[this.state.currentFrame];
 
@@ -437,19 +461,24 @@ class GifEditor extends React.Component {
             }
         }
 
+        const brush = this.state.brushSize === null ?
+            null :
+            createRoundBrush(this.state.brushSize, this.state.color);
+
+
         return (
             <main>
+            {warningList}
             <div id="editor">
                 <NumberEditor
                     id="brushSize"
                     label="Brush size: "
-                    max={99}
-                    min={1}
+                    max={MAXBRUSHSIZE}
+                    min={MINBRUSHSIZE}
                     onChange={this.changeBrushSize}
                     required={true}
                     step={1}
                     initialValue={this.state.brushSize}
-                    usage="Brush size must be an integer from 1 to 99."
                 />
 
                 <ColorEditor
@@ -460,8 +489,7 @@ class GifEditor extends React.Component {
                 />
 
                 <DrawCanvas
-                    brush={createRoundBrush(this.state.brushSize,
-                            this.state.color)}
+                    brush={brush}
                     drawingUpdated={this.drawingUpdated}
                     content={currentFrame.canvas}
                     width={this.props.width}
@@ -472,7 +500,6 @@ class GifEditor extends React.Component {
                 <div id="frameControls">
                     <button onClick={this.addFrame}>Add frame</button>
                 </div>
-                {warning}
             </div>
             <div id="output">
                 <button onClick={this.updateGif} disabled={invalidFrames}

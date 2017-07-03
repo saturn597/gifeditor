@@ -133,6 +133,18 @@ input {
     padding: 10px;
 }
 
-.warning {
-    color: red;
+#warnings {
+    background-color: white;
+    border: 5px solid blue;
+    border-radius: 15px;
+    padding: 20px 10px;
+    position: fixed;
+    bottom: 0;
+    width: 200px;
+}
+
+#warnings h1 {
+    font-size: 25px;
+    font-weight: bold;
+    margin: 10px;
 }

@@ -103,6 +103,9 @@ class DrawCanvas extends React.Component {
     }
 
     draw(pts) {
+        if (!this.props.brush) {
+            return;
+        }
         const context = this.context;
         context.beginPath();
         const brush = this.props.brush;
