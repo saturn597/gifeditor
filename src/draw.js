@@ -110,10 +110,12 @@ class DrawCanvas extends React.Component {
         context.beginPath();
         const brush = this.props.brush;
         for (let pt of pts) {
+            // Take Math.floor so we're not placing at fractional pixels (which
+            // would have weird results).
             context.drawImage(
                     brush,
-                    pt.x - brush.width / 2,
-                    pt.y - brush.height / 2
+                    Math.floor(pt.x - brush.width / 2),
+                    Math.floor(pt.y - brush.height / 2)
             );
             /*context.arc(
                     pt.x,

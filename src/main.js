@@ -30,31 +30,30 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-function createRoundBrush(radius, color = [0, 0, 0, 255]) {
+function createRoundBrush(diameter, color) {
     // Returns a canvas containing a "circle" of the given color, with about
-    // the given radius. The rest of the canvas outside the circle will be
+    // the given diameter. The rest of the canvas outside the circle will be
     // transparent. The canvas will only contain the specified color - other
     // pixels will be fully transparent - no blending/antialiasing (so we can't
     // use the built-in arc drawing method).
-    //
-    // Color defaults to opaque black if unspecified.
-    //
-    // TODO: the circles produced could probably be closer to the specified
-    // radius.
 
     const c = document.createElement('canvas');
     const ctx = c.getContext('2d');
+    c.width = diameter;
+    c.height = diameter;
 
-    c.width = radius * 2;
-    c.height = radius * 2;
+    const center = {x: c.width / 2, y: c.height / 2};
+    const radius = diameter / 2;
 
     const id = ctx.createImageData(c.width, c.height);
 
     for (let x = 0; x < c.width; x++) {
         for (let y = 0; y < c.height; y++) {
-            // If the distance from (x, y) to the center of our canvas is less
-            // than the radius we want, then color that pixel in.
-            if ((c.width / 2 - x)**2 + (c.height / 2 - y)**2 < radius**2) {
+            // Take the distance from the center of our canvas to the "halfway"
+            // point of (x, y) - i.e., (x+0.5, y+0.5). If this is less than the
+            // radius we want, color that pixel in.
+            if ((center.x - x - 0.5)**2 + (center.y - y - 0.5)**2 < radius**2)
+            {
                 id.data.set(color, y * 4 * c.height + x * 4);
             }
         }
