@@ -64,6 +64,12 @@ function createRoundBrush(diameter, color) {
     return c;
 }
 
+let _currentId = -1;
+function sequentialId() {
+    _currentId++;
+    return _currentId;
+}
+
 
 class ColorEditor extends React.Component {
     // A tool for selecting colors. Unlike the HTML5 color input, allows only a
@@ -343,6 +349,7 @@ class GifEditor extends React.Component {
             delay: props.defaultDelay,
             disposal: props.defaultDisposal,
             imageData: null,
+            key: sequentialId(),
         };
     }
 
@@ -436,7 +443,7 @@ class GifEditor extends React.Component {
             const frameNum = i;
             frameListItems.push(<FrameInfo
                     frame={f}
-                    key={i}
+                    key={f.key}
                     onDelayChange={(value) =>
                         this.changeDelay(frameNum, value)}
                     selectFrame={() => this.setState({currentFrame: frameNum})}
