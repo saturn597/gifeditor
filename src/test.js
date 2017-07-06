@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import {Frame, getGifUrl} from './gifs.js';
+import {Frame, getGifUrl, getImageData} from './gifs.js';
 
 require('babel-polyfill');
 
@@ -103,7 +103,7 @@ class GifTester extends React.Component {
                 const ctx = c.getContext('2d');
                 ctx.drawImage(i, 0, 0);
 
-                return new Frame(c, image.delay || 50, 1);
+                return new Frame(getImageData(c), image.delay || 50, 1);
             });
             this.gifSrc = getGifUrl(frames, 0);
         }

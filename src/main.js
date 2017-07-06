@@ -3,7 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import update from 'immutability-helper'
 
-import {Frame, getGifUrl} from './gifs.js';
+import {Frame, getGifUrl, getImageData} from './gifs.js';
 import {DrawCanvas} from './draw.js';
 
 require('babel-polyfill');
@@ -273,9 +273,13 @@ class GifEditor extends React.Component {
 
     drawingUpdated(newCanvas) {
         this.setState((state) => {
+            // We want to update our frame's canvas to contain the updated
+            // drawing. If we cached our imageData, null it here because it's
+            // no longer valid.
             const ind = state.currentFrame;
             const currentFrame = state.frameData[ind];
-            const newFrame = update(currentFrame, {canvas: {$set: newCanvas}});
+            const newFrame = update(currentFrame,
+                    {canvas: {$set: newCanvas}, imageData: {$set: null}});
 
             const frameData = update(state.frameData,
                     {$splice: [[ind, 1, newFrame]]});
@@ -338,6 +342,7 @@ class GifEditor extends React.Component {
             canvas: c,
             delay: props.defaultDelay,
             disposal: props.defaultDisposal,
+            imageData: null,
         };
     }
 
@@ -365,14 +370,26 @@ class GifEditor extends React.Component {
 
     updateGif() {
         this.setState((state, props) => {
+            // The task of constructing the image data for each frame is the
+            // most time consuming part of making a GIF, so if the frame data
+            // doesn't already have the data we need, cache the result there.
+            // That cache will be valid until the user draws again in the
+            // frame.
+            const newFrameData = state.frameData.map(f => {
+                if (!f.imageData) {
+                    f = update(f, {imageData: {$set: getImageData(f.canvas)}});
+                }
+                return f;
+            });
+
             // Note, the "number" input allows scientific notation, but
             // parseInt doesn't get it.  (It interprets 1e3 as 1, for example).
             // parseFloat works better.  TODO: could do some validation of
             // delay values here, in case the user's browser doesn't support
             // number inputs.
-            const frames = state.frameData.map((f) =>
+            const frames = newFrameData.map((f, i) =>
                     new Frame(
-                        f.canvas,
+                        f.imageData,
                         Math.floor(parseFloat(f.delay, 10)),
                         f.disposal));
 
@@ -382,7 +399,7 @@ class GifEditor extends React.Component {
                     props.width,
                     props.height);
 
-            return {gifData};
+            return {gifData, frameData: newFrameData};
         });
     }
 

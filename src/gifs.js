@@ -1,16 +1,87 @@
 // Module for constructing a (possibly animated) GIF out of images stored in
 // HTML5 canvases.
 
-// To make a GIF, first create one or more instances of Frame to represent the
-// individual frame(s) of the animation, then pass those frames to getGifUrl.
+// To make a GIF, first create one or more image data objects using the
+// getImageData function, use those objects to create one or more instances of
+// Frame to represent the individual frame(s) of the animation, then pass those
+// frames to getGifUrl.
 
 
 /************* Public interface *************/
+
+function getImageData(canvas) {
+    // Takes an HTML5 canvas and returns an object representing GIF image data
+    // that corresponds to the image in that canvas. The object returned
+    // includes the actual bytes of image data (represented here as an array of
+    // integers) and some metadata helpful for inserting those bytes into a
+    // full-fledged GIF.
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    const ctx = canvas.getContext('2d');
+
+    // We'll have a list of colors. Each color is referred to by an "index" (just some
+    // integer that'll uniquely identify the color). We want to encode the image as
+    // an array of indices, where each index tells us the color of one pixel.
+    const {indices, colors, transparentIndex} = toIndices(ctx);
+
+    if (colors.length > 256) {
+        throw 'Too many colors in frame.';
+    }
+
+    // Our color table will go into the GIF and specifies which colors go with
+    // which indices.
+    const {
+        colorTable,
+        encodedColorTableSize,
+        minCodeSize
+    } = getColorData(colors);
+
+    // To compress the data, the indices will be converted into "codes"
+    // according to the LZW compression method. Each code can refer to one or
+    // more indices.
+    const cr = getCodeReader(indices, minCodeSize);
+
+    // Finally the codes are converted to "bytes" (which we represent with
+    // integers).  The number of bytes each code takes up is variable (this
+    // allows further compression). So, to start, a GIF image data section
+    // begins with a byte representing the minimum code size.
+    let data = [minCodeSize];
+
+    // The bytes of image data are divided into chunks, each of which begins
+    // with an integer representing the size of the chunk that follows.
+    data = data.concat(chunkify(Array.from(getByteReader(cr, 8)), 255));
+
+    for (let d of data) {
+        if (!Number.isInteger(d) || d > 255 || d < 0) {
+            throw "Invalid data point!";
+        }
+    }
+
+    return {
+        colorTable,
+        encodedColorTableSize,
+        minCodeSize,
+        transparentIndex,
+
+        width,
+        height,
+
+        data,
+    };
+}
+
+
 class Frame {
     // Class for objects corresponding to one frame of a GIF. These objects can
     // be passed to getGifData to actually retrieve the binary data for a GIF.
+    //
+    // TODO: do I really need this class? Or can my frame data objects from
+    // main.js just be passed directly to getGifUrl, with suitable
+    // modifications to getGifUrl?
 
-    constructor(canvas, delay, disposal) {
+    constructor(imageData, delay, disposal) {
         // Canvas indicates which canvas to reference when pulling image data
         // for this frame. When getData is called, the image data will pulled
         // from that canvas.
@@ -25,7 +96,7 @@ class Frame {
         // 3 (not widely supported) means go back to the state before the
         // current frame was drawn. 4-7 are not yet defined.
 
-        this.canvas = canvas;
+        this.imageData = imageData;
         this.setDelay(delay);
         this.setDisposal(disposal);
     }
@@ -34,12 +105,17 @@ class Frame {
         const imageLeft = 0;
         const imageTop = 0;
 
-        const ctx = this.canvas.getContext('2d');
-        const {indices, colors, transparentIndex} = toIndices(ctx);
+        const {
+            colorTable,
+            encodedColorTableSize,
+            minCodeSize,
+            transparentIndex,
 
-        if (colors.length > 256) {
-            throw 'Too many colors in frame.';
-        }
+            width,
+            height,
+
+            data,
+        } = this.imageData;
 
         let result = [];
 
@@ -52,19 +128,13 @@ class Frame {
         // maybe generate an exception?
         result.push(...getGCE(this.delay, this.disposal, transparentIndex));
 
-        const {
-            colorTable,
-            encodedColorTableSize,
-            minCodeSize
-        } = getColorData(colors);
-
         // Push the image descriptor section
         result.push(
             0x2c,  // Image separator - begins each image descriptor
             ...getBytes(imageLeft, 2),
             ...getBytes(imageTop, 2),
-            ...getBytes(this.canvas.width, 2),
-            ...getBytes(this.canvas.height, 2),
+            ...getBytes(width, 2),
+            ...getBytes(height, 2),
             pack([
                     [colorTable.length > 0 ? 1 : 0, 1],  // Local color table present?
                     [0, 1],  // Interlace flag. Currently ignoring.
@@ -79,27 +149,11 @@ class Frame {
             result.push(...colorTable);
         }
 
-        // Gather what we need for the image data section.
-        const cr = getCodeReader(indices, minCodeSize);
-
-        const data = chunkify(Array.from(getByteReader(cr, 8)), 255);
-
-        // The image data section starts with the minimum code size, then byte
-        // representations of the actual image data (a chunk size, then the
-        // byte representation of the codes, then another chunk size if there's
-        // more data left, etc.)
-        result.push(minCodeSize);
-        for (let d of data) {
-            if (!Number.isInteger(d) || d > 255 || d < 0) {
-                throw "Invalid data point!";
-            }
-        }
         // Note, using result.push(...data) results in "maximum call stack size
         // exceeded" in Chromium with larger images - can't call a method with
         // that many arguments.
         result = result.concat(data);
         result.push(0);
-
 
         return result;
     }
@@ -617,4 +671,4 @@ function toCharCodes(str) {
 }
 
 
-export {Frame, getGifData, getGifUrl};
+export {Frame, getGifData, getGifUrl, getImageData};
