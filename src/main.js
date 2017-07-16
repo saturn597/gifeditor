@@ -9,25 +9,114 @@ import {DrawCanvas} from './draw.js';
 require('babel-polyfill');
 
 
+const DEFAULTHEIGHT=200;
+const DEFAULTWIDTH=250;
+
 const MAXBRUSHSIZE=99;
 const MINBRUSHSIZE=1;
 
 const MAXDELAY=65535;
 const MINDELAY=0;
 
+const MAXHEIGHT=999;
+const MAXWIDTH=999;
+
 
 document.addEventListener('DOMContentLoaded', function() {
     ReactDOM.render(
+            <App />,
+            document.getElementById('mount')
+            );
+});
+
+class App extends React.Component {
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            height: DEFAULTHEIGHT,
+            width: DEFAULTWIDTH,
+
+            drawingStarted: false,
+        };
+
+        this.changeHeight = this.changeHeight.bind(this);
+        this.changeWidth = this.changeWidth.bind(this);
+        this.startDrawing = this.toggleDrawing.bind(this, true);
+        this.stopDrawing = this.toggleDrawing.bind(this, false);
+    }
+
+    changeHeight(h) {
+        if (h !== null) {
+            this.setState({height: h});
+        }
+    }
+
+    changeWidth(w) {
+        if (w !== null) {
+            this.setState({width: w});
+        }
+    }
+
+    toggleDrawing(s) {
+        this.setState({drawingStarted: s});
+    }
+
+    render() {
+        const previewStyle = {
+            height: this.state.height,
+            width: this.state.width
+        };
+
+        if (!this.state.drawingStarted) {
+            return (<div id="sizeEditor">
+                        <div className="description">
+                            Set the height and width of your GIF.
+                            Width must be no larger than {MAXWIDTH}.
+                            Height must be no larger than {MAXHEIGHT}.
+                        </div>
+                        <NumberEditor
+                            initialValue={this.state.width}
+                            label="Width:"
+                            max={MAXWIDTH}
+                            min={1}
+                            onChange={this.changeWidth}
+                            required={true}
+                            step={1}
+                        />
+                        <NumberEditor
+                            initialValue={this.state.height}
+                            label="Height:"
+                            max={MAXHEIGHT}
+                            min={1}
+                            onChange={this.changeHeight}
+                            required={true}
+                            step={1}
+                        />
+                        <button
+                            className="bigButton"
+                            onClick={this.startDrawing}>
+                            Go!
+                        </button>
+                        <div id="sizePreview" style={previewStyle} />
+                    </div>
+                );
+        }
+
+        return (
             <GifEditor
                 defaultDelay={1}
                 defaultDisposal={1}
                 initialFrameCount={3}
 
-                width={700}
-                height={500} />,
-            document.getElementById('mount')
-            );
-});
+                abort={this.stopDrawing}
+
+                height={this.state.height}
+                width={this.state.width}
+            />
+        );
+    }
+}
 
 
 function createRoundBrush(diameter, color) {
@@ -139,8 +228,7 @@ class NumberEditor extends React.Component {
     // A component to allow the user to set a number within a specific range,
     // with a specific step.
     //
-    // Provide an onChange function in props to receive newly set values - by
-    // default this will only be called when the user enters valid input.
+    // Provide an onChange function in props to receive newly set values.
     constructor(props) {
         super(props);
         this.state = {
@@ -169,7 +257,7 @@ class NumberEditor extends React.Component {
     render() {
         const valid = this.state.valid;
         return (
-           <div id={this.props.id}>
+           <div className="numberEditor" id={this.props.id}>
                <label>{this.props.label}
                    <input
                        type="number"
@@ -199,7 +287,6 @@ NumberEditor.propTypes =
     onInputClick: PropTypes.func,
     required: PropTypes.bool,
     step: PropTypes.number,
-    updateWhenInvalid: PropTypes.bool,
 }
 
 
@@ -244,6 +331,49 @@ class FrameInfo extends React.Component {
         );
     }
 }
+
+
+class ConfirmButton extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {clicked: false};
+
+        this.toggle = this.toggle.bind(this);
+    }
+
+    toggle() {
+        this.setState((state, props) => ({clicked: !state.clicked}));
+    }
+
+    render() {
+        if (this.state.clicked) {
+            return (
+                       <span id={this.props.id}>
+                           {this.props.confirmText}
+                           <button onClick={this.props.action}>Yes</button>
+                           <button onClick={this.toggle}>No</button>
+                       </span>
+                   );
+        }
+        return (
+                    <span id={this.props.id}>
+                        <button onClick={this.toggle}>
+                            {this.props.children}
+                        </button>
+                    </span>
+               );
+    }
+}
+
+ConfirmButton.propTypes = {
+    action: PropTypes.func.isRequired,
+    confirmText: PropTypes.string,
+    id: PropTypes.string,
+};
+
+ConfirmButton.defaultProps = {
+    confirmText: "Are you sure?",
+};
 
 
 class GifEditor extends React.Component {
@@ -426,7 +556,7 @@ class GifEditor extends React.Component {
         let warningList = null;
         if (warnings.length > 0) {
             warningList = (
-                <div id="warnings">
+                <div id="messages">
                     <h1>Whoops!</h1>
                     <ul>
                         {warnings.map(w => <li key={w}>{w}</li>)}
@@ -534,6 +664,9 @@ class GifEditor extends React.Component {
                 </div>
                 <div id="gifContainer" style={gifContainerStyle}>{gif}</div>
             </div>
+            <ConfirmButton action={this.props.abort}>
+                Abort GIF
+            </ConfirmButton>
             </main>
         );
     }

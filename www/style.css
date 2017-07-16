@@ -57,13 +57,23 @@ canvas {
     width: 20px;
 }
 
+.description {
+    background-color: lightblue;
+    border: 2px outset navy;
+    border-radius: 15px;
+    font-size: 17px;
+    margin: 10px auto 25px auto;
+    padding: 5px;
+    width: 300px;
+}
+
 #downArrow {
     color: navy;
     font-size: 75px;
 }
 
 #editor {
-    margin: 50px 0;
+    margin: 5px 0 50px 0;
 }
 
 #frameList {
@@ -99,10 +109,6 @@ canvas {
     margin: 0 auto;
 }
 
-input {
-    width: 50px;
-}
-
 .invalidInput {
     background-color: darksalmon;
 }
@@ -113,6 +119,31 @@ input {
 
 #selected:hover {
     background-color: #67a7a8;
+}
+
+#sizeEditor {
+    font-size: 30px;
+}
+
+#sizeEditor input {
+    font-size: 30px;
+}
+
+#sizeEditor .numberEditor {
+    display: inline;
+    padding: 0 10px;
+}
+
+#sizeEditor button {
+    display: block;
+    margin: 10px auto;
+}
+
+#sizePreview {
+    background-color: lightgray;
+    border: 5px outset gray;
+    display: block;
+    margin: 0 auto;
 }
 
 .test {
