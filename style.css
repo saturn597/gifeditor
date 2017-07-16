@@ -1,12 +1,12 @@
 body {
     background-color: lavenderblush;
-    font-size: 10px;
+    font-size: 15px;
     text-align: center;
 }
 
 .bigButton {
     background-color: navy;
-    border: none;
+    border: 4px midnightblue outset;
     border-radius: 15px;
     color: white;
     font-size: 25px;
@@ -19,12 +19,52 @@ body {
 
 .bigButton:active {
     background-color: #000040;
+    border: 4px midnightblue inset;
+}
+
+#brushSize {
+    display: inline-block;
 }
 
 canvas {
     border: 5px outset red;
     display: block;
-    margin: 25px auto;
+    margin: 0 auto 25px auto;
+}
+
+#colorPicker {
+    border: 1px inset #aaa;
+    display: inline-block;
+    position: relative;
+    vertical-align: bottom;
+    height: 20px;
+    width: 50px;
+}
+
+#colorList {
+    left: -143px;
+    top: 20px;
+    line-height: 0px;
+    position: absolute;
+    width: 336px;
+}
+
+#colorList div {
+    border: 1px solid black;
+    display: inline-block;
+    margin: 0 0 -1px -1px;
+    height: 20px;
+    width: 20px;
+}
+
+.description {
+    background-color: lightblue;
+    border: 2px outset navy;
+    border-radius: 15px;
+    font-size: 17px;
+    margin: 10px auto 25px auto;
+    padding: 5px;
+    width: 300px;
 }
 
 #downArrow {
@@ -33,7 +73,7 @@ canvas {
 }
 
 #editor {
-    margin-bottom: 50px;
+    margin: 5px 0 50px 0;
 }
 
 #frameList {
@@ -52,7 +92,6 @@ canvas {
     background-color: lightblue;
     border-right: 1px solid white;
     display: inline-block;
-    font-size: 15px;
     font-family: "Helvetica Neue",Helvetica,sans-serif;
     margin: 0;
     padding: 20px 0;
@@ -70,10 +109,6 @@ canvas {
     margin: 0 auto;
 }
 
-input {
-    width: 50px;
-}
-
 .invalidInput {
     background-color: darksalmon;
 }
@@ -84,6 +119,31 @@ input {
 
 #selected:hover {
     background-color: #67a7a8;
+}
+
+#sizeEditor {
+    font-size: 30px;
+}
+
+#sizeEditor input {
+    font-size: 30px;
+}
+
+#sizeEditor .numberEditor {
+    display: inline;
+    padding: 0 10px;
+}
+
+#sizeEditor button {
+    display: block;
+    margin: 10px auto;
+}
+
+#sizePreview {
+    background-color: lightgray;
+    border: 5px outset gray;
+    display: block;
+    margin: 0 auto;
 }
 
 .test {
@@ -102,4 +162,20 @@ input {
     background-color: lightcyan;
     border-radius: 15px;
     padding: 10px;
+}
+
+#warnings {
+    background-color: white;
+    border: 5px solid blue;
+    border-radius: 15px;
+    padding: 20px 10px;
+    position: fixed;
+    bottom: 0;
+    width: 200px;
+}
+
+#warnings h1 {
+    font-size: 25px;
+    font-weight: bold;
+    margin: 10px;
 }
