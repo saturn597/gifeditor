@@ -164,7 +164,7 @@ canvas {
     padding: 10px;
 }
 
-#warnings {
+#messages {
     background-color: white;
     border: 5px solid blue;
     border-radius: 15px;
@@ -174,7 +174,7 @@ canvas {
     width: 200px;
 }
 
-#warnings h1 {
+#messages h1 {
     font-size: 25px;
     font-weight: bold;
     margin: 10px;
