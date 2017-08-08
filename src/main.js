@@ -105,7 +105,7 @@ class App extends React.Component {
 
         return (
             <GifEditor
-                defaultDelay={1}
+                defaultDelay={10}
                 defaultDisposal={1}
                 initialFrameCount={3}
 
@@ -647,6 +647,13 @@ class GifEditor extends React.Component {
                     content={currentFrame.canvas}
                     width={this.props.width}
                     height={this.props.height} />
+
+                <p>▲Tip: draw in the <span className="red">red</span> area
+                above.</p>
+
+                <p>▼Switch the active frame by clicking the one you want below.
+                Durations are in 100ths of a second.</p>
+
                 <ol id="frameList">
                     {frameListItems}
                 </ol>
