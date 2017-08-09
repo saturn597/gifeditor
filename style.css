@@ -29,7 +29,7 @@ body {
 canvas {
     border: 5px outset red;
     display: block;
-    margin: 0 auto 25px auto;
+    margin: 0 auto 0 auto;
 }
 
 #colorPicker {
@@ -76,6 +76,10 @@ canvas {
     margin: 5px 0 50px 0;
 }
 
+.frameInfo input {
+    width: 55px;
+}
+
 #frameList {
     background-color: darkgray;
     border: 5px outset lightgray;
@@ -111,6 +115,15 @@ canvas {
 
 .invalidInput {
     background-color: darksalmon;
+}
+
+p {
+    margin: 10px 0;
+}
+
+.red {
+    color: red;
+    font-weight: bold;
 }
 
 #selected {
@@ -164,7 +177,7 @@ canvas {
     padding: 10px;
 }
 
-#warnings {
+#messages {
     background-color: white;
     border: 5px solid blue;
     border-radius: 15px;
@@ -174,7 +187,7 @@ canvas {
     width: 200px;
 }
 
-#warnings h1 {
+#messages h1 {
     font-size: 25px;
     font-weight: bold;
     margin: 10px;

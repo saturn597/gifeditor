@@ -31693,7 +31693,7 @@ var App = function (_React$Component) {
             }
 
             return _react2.default.createElement(GifEditor, {
-                defaultDelay: 1,
+                defaultDelay: 10,
                 defaultDisposal: 1,
                 initialFrameCount: 3,
 
@@ -32368,6 +32368,22 @@ var GifEditor = function (_React$Component6) {
                         content: currentFrame.canvas,
                         width: this.props.width,
                         height: this.props.height }),
+                    _react2.default.createElement(
+                        'p',
+                        null,
+                        '\u25B2Tip: draw in the ',
+                        _react2.default.createElement(
+                            'span',
+                            { className: 'red' },
+                            'red'
+                        ),
+                        ' area above.'
+                    ),
+                    _react2.default.createElement(
+                        'p',
+                        null,
+                        '\u25BCSwitch the active frame by clicking the one you want below. Durations are in 100ths of a second.'
+                    ),
                     _react2.default.createElement(
                         'ol',
                         { id: 'frameList' },
