@@ -621,6 +621,24 @@ class GifEditor extends React.Component {
 
         return (
             <main>
+            <div className="description">
+                <p>You're now editing a GIF. You can draw in the red-outlined area
+                below using your mouse. Change your brush size and color using
+                the controls immediately above the drawing area.</p>
+                <p>Below the drawing area, you can see your frames, displayed
+                in order left to right. The current frame is darker blue.
+                Switch to a different frame by clicking on it.</p>
+                <p>Change the "Duration" setting for a given frame to change
+                how long that frame will be displayed in each animation loop.
+                Durations are in hundredths of a second.</p>
+                <p>To stitch your frames into an animated GIF, click the blue
+                "Create GIF" button. Your GIF will display in the blue-outlined
+                area underneath. If your GIF is especially wide and/or tall,
+                this may take a few moments.</p>
+                <p>To save your work, right or control click the GIF you've
+                created and click save.</p>
+                <p>Have fun!</p>
+            </div>
             {warningList}
             <div id="editor">
                 <NumberEditor
@@ -648,11 +666,11 @@ class GifEditor extends React.Component {
                     width={this.props.width}
                     height={this.props.height} />
 
-                <p>▲Tip: draw in the <span className="red">red</span> area
-                above.</p>
+                <p>▲Tip: draw in the area outlined in <span
+                className="red">red</span> above.</p>
 
-                <p>▼Switch the active frame by clicking the one you want below.
-                Durations are in 100ths of a second.</p>
+                <p>▼Switch the active frame by clicking the one you want
+                below.</p>
 
                 <ol id="frameList">
                     {frameListItems}
