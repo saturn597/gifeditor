@@ -224,6 +224,32 @@ ColorEditor.propTypes =
 };
 
 
+class Hideable extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {'visible': false};
+        this.toggle = this.toggle.bind(this);
+    }
+
+    toggle() {
+        this.setState((state, props) => {
+            return {visible: !state.visible};
+        });
+    }
+
+    render() {
+        const content = this.state.visible ? this.props.children : '';
+        const toggleText = this.state.visible ? this.props.hideText : this.props.showText;
+        return (
+            <div className="description">
+                {content}
+                <button onClick={this.toggle}>{toggleText}</button>
+            </div>
+        );
+    }
+}
+
+
 class NumberEditor extends React.Component {
     // A component to allow the user to set a number within a specific range,
     // with a specific step.
@@ -621,7 +647,7 @@ class GifEditor extends React.Component {
 
         return (
             <main>
-            <div className="description">
+            <Hideable showText="Help!" hideText="Hide help">
                 <p>You're now editing a GIF. You can draw in the red-outlined area
                 below using your mouse. Change your brush size and color using
                 the controls immediately above the drawing area.</p>
@@ -638,7 +664,7 @@ class GifEditor extends React.Component {
                 <p>To save your work, right or control click the GIF you've
                 created and click save.</p>
                 <p>Have fun!</p>
-            </div>
+            </Hideable>
             {warningList}
             <div id="editor">
                 <NumberEditor
@@ -666,7 +692,7 @@ class GifEditor extends React.Component {
                     width={this.props.width}
                     height={this.props.height} />
 
-                <p>▲Tip: draw in the area outlined in <span
+                <p>▲Draw in the area outlined in <span
                 className="red">red</span> above.</p>
 
                 <p>▼Switch the active frame by clicking the one you want
