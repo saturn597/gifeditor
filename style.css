@@ -64,6 +64,10 @@ canvas {
     font-size: 17px;
     margin: 10px auto 25px auto;
     padding: 5px;
+    width: 600px;
+}
+
+#sizeEditor .description {
     width: 300px;
 }
 

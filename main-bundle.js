@@ -31856,8 +31856,49 @@ ColorEditor.propTypes = {
     setColor: _propTypes2.default.func.isRequired
 };
 
-var NumberEditor = function (_React$Component3) {
-    _inherits(NumberEditor, _React$Component3);
+var Hideable = function (_React$Component3) {
+    _inherits(Hideable, _React$Component3);
+
+    function Hideable(props) {
+        _classCallCheck(this, Hideable);
+
+        var _this5 = _possibleConstructorReturn(this, (Hideable.__proto__ || Object.getPrototypeOf(Hideable)).call(this, props));
+
+        _this5.state = { 'visible': false };
+        _this5.toggle = _this5.toggle.bind(_this5);
+        return _this5;
+    }
+
+    _createClass(Hideable, [{
+        key: 'toggle',
+        value: function toggle() {
+            this.setState(function (state, props) {
+                return { visible: !state.visible };
+            });
+        }
+    }, {
+        key: 'render',
+        value: function render() {
+            var content = this.state.visible ? this.props.children : '';
+            var toggleText = this.state.visible ? this.props.hideText : this.props.showText;
+            return _react2.default.createElement(
+                'div',
+                { className: 'description' },
+                content,
+                _react2.default.createElement(
+                    'button',
+                    { onClick: this.toggle },
+                    toggleText
+                )
+            );
+        }
+    }]);
+
+    return Hideable;
+}(_react2.default.Component);
+
+var NumberEditor = function (_React$Component4) {
+    _inherits(NumberEditor, _React$Component4);
 
     // A component to allow the user to set a number within a specific range,
     // with a specific step.
@@ -31866,15 +31907,15 @@ var NumberEditor = function (_React$Component3) {
     function NumberEditor(props) {
         _classCallCheck(this, NumberEditor);
 
-        var _this5 = _possibleConstructorReturn(this, (NumberEditor.__proto__ || Object.getPrototypeOf(NumberEditor)).call(this, props));
+        var _this6 = _possibleConstructorReturn(this, (NumberEditor.__proto__ || Object.getPrototypeOf(NumberEditor)).call(this, props));
 
-        _this5.state = {
+        _this6.state = {
             'valid': true,
             'value': props.initialValue
         };
 
-        _this5.onChange = _this5.onChange.bind(_this5);
-        return _this5;
+        _this6.onChange = _this6.onChange.bind(_this6);
+        return _this6;
     }
 
     _createClass(NumberEditor, [{
@@ -31934,8 +31975,8 @@ NumberEditor.propTypes = {
     step: _propTypes2.default.number
 };
 
-var FrameInfo = function (_React$Component4) {
-    _inherits(FrameInfo, _React$Component4);
+var FrameInfo = function (_React$Component5) {
+    _inherits(FrameInfo, _React$Component5);
 
     function FrameInfo() {
         _classCallCheck(this, FrameInfo);
@@ -31951,13 +31992,13 @@ var FrameInfo = function (_React$Component4) {
     }, {
         key: 'render',
         value: function render() {
-            var _this7 = this;
+            var _this8 = this;
 
             var id = this.props.selected ? 'selected' : null;
 
             var myRemoveFrame = function myRemoveFrame(e) {
                 e.stopPropagation();
-                _this7.props.removeFrame();
+                _this8.props.removeFrame();
             };
 
             return _react2.default.createElement(
@@ -31991,18 +32032,18 @@ var FrameInfo = function (_React$Component4) {
     return FrameInfo;
 }(_react2.default.Component);
 
-var ConfirmButton = function (_React$Component5) {
-    _inherits(ConfirmButton, _React$Component5);
+var ConfirmButton = function (_React$Component6) {
+    _inherits(ConfirmButton, _React$Component6);
 
     function ConfirmButton(props) {
         _classCallCheck(this, ConfirmButton);
 
-        var _this8 = _possibleConstructorReturn(this, (ConfirmButton.__proto__ || Object.getPrototypeOf(ConfirmButton)).call(this, props));
+        var _this9 = _possibleConstructorReturn(this, (ConfirmButton.__proto__ || Object.getPrototypeOf(ConfirmButton)).call(this, props));
 
-        _this8.state = { clicked: false };
+        _this9.state = { clicked: false };
 
-        _this8.toggle = _this8.toggle.bind(_this8);
-        return _this8;
+        _this9.toggle = _this9.toggle.bind(_this9);
+        return _this9;
     }
 
     _createClass(ConfirmButton, [{
@@ -32057,20 +32098,20 @@ ConfirmButton.defaultProps = {
     confirmText: "Are you sure?"
 };
 
-var GifEditor = function (_React$Component6) {
-    _inherits(GifEditor, _React$Component6);
+var GifEditor = function (_React$Component7) {
+    _inherits(GifEditor, _React$Component7);
 
     function GifEditor(props) {
         _classCallCheck(this, GifEditor);
 
-        var _this9 = _possibleConstructorReturn(this, (GifEditor.__proto__ || Object.getPrototypeOf(GifEditor)).call(this, props));
+        var _this10 = _possibleConstructorReturn(this, (GifEditor.__proto__ || Object.getPrototypeOf(GifEditor)).call(this, props));
 
         var frameData = [];
-        for (var i = 0; i < _this9.props.initialFrameCount; i++) {
-            frameData.push(_this9.newFrameData(_this9.props));
+        for (var i = 0; i < _this10.props.initialFrameCount; i++) {
+            frameData.push(_this10.newFrameData(_this10.props));
         }
 
-        _this9.state = {
+        _this10.state = {
             brushSize: 5,
             color: [0, 0, 0, 255],
             currentFrame: 0,
@@ -32078,23 +32119,23 @@ var GifEditor = function (_React$Component6) {
             gifData: ''
         };
 
-        _this9.addFrame = _this9.addFrame.bind(_this9);
-        _this9.changeBrushSize = _this9.changeBrushSize.bind(_this9);
-        _this9.changeDelay = _this9.changeDelay.bind(_this9);
-        _this9.drawingUpdated = _this9.drawingUpdated.bind(_this9);
-        _this9.setColor = _this9.setColor.bind(_this9);
-        _this9.updateGif = _this9.updateGif.bind(_this9);
-        return _this9;
+        _this10.addFrame = _this10.addFrame.bind(_this10);
+        _this10.changeBrushSize = _this10.changeBrushSize.bind(_this10);
+        _this10.changeDelay = _this10.changeDelay.bind(_this10);
+        _this10.drawingUpdated = _this10.drawingUpdated.bind(_this10);
+        _this10.setColor = _this10.setColor.bind(_this10);
+        _this10.updateGif = _this10.updateGif.bind(_this10);
+        return _this10;
     }
 
     _createClass(GifEditor, [{
         key: 'addFrame',
         value: function addFrame() {
-            var _this10 = this;
+            var _this11 = this;
 
             this.setState(function (state, props) {
                 return {
-                    frameData: state.frameData.concat(_this10.newFrameData(props))
+                    frameData: state.frameData.concat(_this11.newFrameData(props))
                 };
             });
         }
@@ -32231,7 +32272,7 @@ var GifEditor = function (_React$Component6) {
     }, {
         key: 'render',
         value: function render() {
-            var _this11 = this;
+            var _this12 = this;
 
             var warnings = [];
 
@@ -32281,13 +32322,13 @@ var GifEditor = function (_React$Component6) {
                     frame: f,
                     key: f.key,
                     onDelayChange: function onDelayChange(value) {
-                        return _this11.changeDelay(frameNum, value);
+                        return _this12.changeDelay(frameNum, value);
                     },
                     selectFrame: function selectFrame() {
-                        return _this11.setState({ currentFrame: frameNum });
+                        return _this12.setState({ currentFrame: frameNum });
                     },
                     removeFrame: function removeFrame() {
-                        return _this11.removeFrame(frameNum);
+                        return _this12.removeFrame(frameNum);
                     },
                     selected: f === currentFrame }));
                 i++;
@@ -32342,6 +32383,40 @@ var GifEditor = function (_React$Component6) {
             return _react2.default.createElement(
                 'main',
                 null,
+                _react2.default.createElement(
+                    Hideable,
+                    { showText: 'Help!', hideText: 'Hide help' },
+                    _react2.default.createElement(
+                        'p',
+                        null,
+                        'You\'re now editing a GIF. You can draw in the red-outlined area below using your mouse. Change your brush size and color using the controls immediately above the drawing area.'
+                    ),
+                    _react2.default.createElement(
+                        'p',
+                        null,
+                        'Below the drawing area, you can see your frames, displayed in order left to right. The current frame is darker blue. Switch to a different frame by clicking on it.'
+                    ),
+                    _react2.default.createElement(
+                        'p',
+                        null,
+                        'Change the "Duration" setting for a given frame to change how long that frame will be displayed in each animation loop. Durations are in hundredths of a second.'
+                    ),
+                    _react2.default.createElement(
+                        'p',
+                        null,
+                        'To stitch your frames into an animated GIF, click the blue "Create GIF" button. Your GIF will display in the blue-outlined area underneath. If your GIF is especially wide and/or tall, this may take a few moments.'
+                    ),
+                    _react2.default.createElement(
+                        'p',
+                        null,
+                        'To save your work, right or control click the GIF you\'ve created and click save.'
+                    ),
+                    _react2.default.createElement(
+                        'p',
+                        null,
+                        'Have fun!'
+                    )
+                ),
                 warningList,
                 _react2.default.createElement(
                     'div',
@@ -32371,18 +32446,19 @@ var GifEditor = function (_React$Component6) {
                     _react2.default.createElement(
                         'p',
                         null,
-                        '\u25B2Tip: draw in the ',
+                        '\u25B2Draw in the area outlined in ',
                         _react2.default.createElement(
                             'span',
-                            { className: 'red' },
+                            {
+                                className: 'red' },
                             'red'
                         ),
-                        ' area above.'
+                        ' above.'
                     ),
                     _react2.default.createElement(
                         'p',
                         null,
-                        '\u25BCSwitch the active frame by clicking the one you want below. Durations are in 100ths of a second.'
+                        '\u25BCSwitch the active frame by clicking the one you want below.'
                     ),
                     _react2.default.createElement(
                         'ol',
@@ -32431,8 +32507,8 @@ var GifEditor = function (_React$Component6) {
     return GifEditor;
 }(_react2.default.Component);
 
-var Preview = function (_React$Component7) {
-    _inherits(Preview, _React$Component7);
+var Preview = function (_React$Component8) {
+    _inherits(Preview, _React$Component8);
 
     function Preview() {
         _classCallCheck(this, Preview);
