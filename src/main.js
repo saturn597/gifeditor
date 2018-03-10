@@ -467,6 +467,81 @@ class GifEditor extends React.Component {
         });
     }
 
+    getColorOptions() {
+        // Rough way of filling in some color options. TODO: could see if there
+        // are better ways of picking a palette.
+        const colorOptions = [
+            [255, 255, 255, 255],
+            [200, 200, 200, 255],
+            [150, 150, 150, 255],
+            [100, 100, 100, 255],
+            [50, 50, 50, 255],
+        ];
+
+        for (let r = 0; r < 6; r++) {
+            for (let g = 0; g < 8; g++) {
+                for (let b = 0; b < 5; b++) {
+                    colorOptions.push([
+                            Math.floor(256 / 6 * r),
+                            Math.floor(256 / 8 * g),
+                            Math.floor(256 / 5 * b),
+                            255,
+                    ]);
+                }
+            }
+        }
+
+        return colorOptions;
+    }
+
+    getFrameList() {
+        const currentFrame = this.state.frameData[this.state.currentFrame];
+        const frameList = [];
+        let i = 0;
+        for (let f of this.state.frameData) {
+            const frameNum = i;
+            frameList.push(<FrameInfo
+                    frame={f}
+                    key={f.key}
+                    onDelayChange={(value) =>
+                        this.changeDelay(frameNum, value)}
+                    selectFrame={() => this.setState({currentFrame: frameNum})}
+                    removeFrame={() => this.removeFrame(frameNum)}
+                    selected={f === currentFrame} />);
+            i++;
+        }
+        return frameList;
+    }
+
+    getWarnings() {
+        const warnings = [];
+
+        if (this.state.brushSize === null) {
+            warnings.push(`Brush size must be an integer between ${MINBRUSHSIZE} and ${MAXBRUSHSIZE} inclusive.`);
+        }
+
+        const invalidFrames = this.state.frameData.some((f) =>
+                f.delay === null);
+        if (invalidFrames) {
+            warnings.push(`Durations must be integers between ${MINDELAY} and ${MAXDELAY} inclusive.`);
+        }
+
+        let warningList = null;
+        if (warnings.length > 0) {
+            warningList = (
+                <div id="messages">
+                    <h1>Whoops!</h1>
+                    <ul>
+                        {warnings.map(w => <li key={w}>{w}</li>)}
+                    </ul>
+                </div>
+            );
+        }
+
+        return warningList;
+    }
+
+
     newFrameData(props) {
         const c = document.createElement('canvas');
         c.width = props.width;
@@ -567,46 +642,12 @@ class GifEditor extends React.Component {
     }
 
     render() {
-        const warnings = [];
-
-        if (this.state.brushSize === null) {
-            warnings.push(`Brush size must be an integer between ${MINBRUSHSIZE} and ${MAXBRUSHSIZE} inclusive.`);
-        }
-
         const invalidFrames = this.state.frameData.some((f) =>
                 f.delay === null);
-        if (invalidFrames) {
-            warnings.push(`Durations must be integers between ${MINDELAY} and ${MAXDELAY} inclusive.`);
-        }
-
-        let warningList = null;
-        if (warnings.length > 0) {
-            warningList = (
-                <div id="messages">
-                    <h1>Whoops!</h1>
-                    <ul>
-                        {warnings.map(w => <li key={w}>{w}</li>)}
-                    </ul>
-                </div>
-            );
-        }
+        const warnings = this.getWarnings();
 
         const currentFrame = this.state.frameData[this.state.currentFrame];
-
-        const frameListItems = [];
-        let i = 0;
-        for (let f of this.state.frameData) {
-            const frameNum = i;
-            frameListItems.push(<FrameInfo
-                    frame={f}
-                    key={f.key}
-                    onDelayChange={(value) =>
-                        this.changeDelay(frameNum, value)}
-                    selectFrame={() => this.setState({currentFrame: frameNum})}
-                    removeFrame={() => this.removeFrame(frameNum)}
-                    selected={f === currentFrame} />);
-            i++;
-        }
+        const frameList = this.getFrameList();
 
         const gif = this.state.gifData ?
             <img src={this.state.gifData} /> :
@@ -617,33 +658,9 @@ class GifEditor extends React.Component {
             "height": this.props.height,
         };
 
-        // Rough way of filling in some color options. TODO: could see if there
-        // are better ways of picking a palette.
-        const colorOptions = [
-            [255, 255, 255, 255],
-            [200, 200, 200, 255],
-            [150, 150, 150, 255],
-            [100, 100, 100, 255],
-            [50, 50, 50, 255],
-        ];
-
-        for (let r = 0; r < 6; r++) {
-            for (let g = 0; g < 8; g++) {
-                for (let b = 0; b < 5; b++) {
-                    colorOptions.push([
-                            Math.floor(256 / 6 * r),
-                            Math.floor(256 / 8 * g),
-                            Math.floor(256 / 5 * b),
-                            255,
-                    ]);
-                }
-            }
-        }
-
         const brush = this.state.brushSize === null ?
             null :
             createRoundBrush(this.state.brushSize, this.state.color);
-
 
         return (
             <main>
@@ -665,7 +682,7 @@ class GifEditor extends React.Component {
                 created and click save.</p>
                 <p>Have fun!</p>
             </Hideable>
-            {warningList}
+            {warnings}
             <div id="editor">
                 <NumberEditor
                     id="brushSize"
@@ -679,7 +696,7 @@ class GifEditor extends React.Component {
                 />
 
                 <ColorEditor
-                    colors={colorOptions}
+                    colors={this.getColorOptions()}
                     currentColor={this.state.color}
                     label="Color: "
                     setColor={this.setColor}
@@ -699,7 +716,7 @@ class GifEditor extends React.Component {
                 below.</p>
 
                 <ol id="frameList">
-                    {frameListItems}
+                    {frameList}
                 </ol>
                 <div id="frameControls">
                     <button onClick={this.addFrame}>Add frame</button>
