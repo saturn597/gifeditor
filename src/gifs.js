@@ -1,30 +1,24 @@
 // Module for constructing a (possibly animated) GIF out of images stored in
 // HTML5 canvases.
 
-// To make a GIF, first create one or more image data objects using the
-// getImageData function, use those objects to create one or more instances of
-// Frame to represent the individual frame(s) of the animation, then pass those
-// frames to getGifUrl.
+// To make a GIF, first create one or more image data objects using either the
+// getImageData or canvasDataToGIFData function. Then, use those objects to
+// create one or more instances of Frame to represent the individual frame(s)
+// of the animation. Finally, pass those frames to getGifUrl.
 
 
 /************* Public interface *************/
 
-function getImageData(canvas) {
-    // Takes an HTML5 canvas and returns an object representing GIF image data
-    // that corresponds to the image in that canvas. The object returned
-    // includes the actual bytes of image data (represented here as an array of
-    // integers) and some metadata helpful for inserting those bytes into a
-    // full-fledged GIF.
+function canvasDataToGIFData(canvasData, width, height) {
+    // Take an array of image data (like you'd get from calling getImageData on
+    // a canvas context) and convert it to an object representing the image. We'll
+    // need to know the width and height of the original image.
 
-    const width = canvas.width;
-    const height = canvas.height;
-
-    const ctx = canvas.getContext('2d');
-
-    // We'll have a list of colors. Each color is referred to by an "index" (just some
-    // integer that'll uniquely identify the color). We want to encode the image as
-    // an array of indices, where each index tells us the color of one pixel.
-    const {indices, colors, transparentIndex} = toIndices(ctx);
+    // To start, we'll need to have a list of colors. Each color will be
+    // referred to by an "index" (just some integer that'll uniquely identify
+    // the color). We want to encode the image as an array of indices, where
+    // each index tells us the color of one pixel.
+    const {indices, colors, transparentIndex} = toIndices(canvasData);
 
     if (colors.length > 256) {
         throw 'Too many colors in frame.';
@@ -70,6 +64,22 @@ function getImageData(canvas) {
 
         data,
     };
+
+}
+
+function getImageData(canvas) {
+    // Takes an HTML5 canvas and returns an object representing GIF image data
+    // that corresponds to the image in that canvas. The object returned
+    // includes the actual bytes of image data (represented here as an array of
+    // integers) and some metadata helpful for inserting those bytes into a
+    // full-fledged GIF.
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    const ctx = canvas.getContext('2d');
+    const d = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data;
+    return canvasDataToGIFData(d, width, height);
 }
 
 
@@ -552,8 +562,10 @@ function getGCE(delay, disposal, transparentIndex) {
 }
 
 
-function toIndices(ctx) {
-    // Convert a canvas context to a series of "indices."
+function toIndices(d) {
+    // Convert an array of image data (like you get from calling getImageData
+    // on a canvas context) to a series of "indices" usable in constructing a
+    // GIF.
     //
     // Each index is a number corresponding to one pixel read from the canvas.
     //
@@ -573,9 +585,6 @@ function toIndices(ctx) {
     // 3) a transparent index, indicating which index corresponds with a
     // transparent pixel. This will be "undefined" if the canvas contained no
     // transparent pixels.
-
-
-    const d = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data;
 
     const colors = [];
     const colorMap = new Map();
@@ -671,4 +680,4 @@ function toCharCodes(str) {
 }
 
 
-export {Frame, getGifData, getGifUrl, getImageData};
+export {canvasDataToGIFData, Frame, getGifData, getGifUrl, getImageData};

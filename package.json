@@ -18,6 +18,7 @@
     "babel-polyfill": "^6.23.0",
     "babel-preset-env": "^1.4.0",
     "babel-preset-react": "^6.24.1",
+    "canvas-webworker": "0.0.2",
     "express": "^4.15.2",
     "immutability-helper": "^2.2.2",
     "react": "^15.5.4",
