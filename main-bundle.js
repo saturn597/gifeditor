@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 482);
+/******/ 	return __webpack_require__(__webpack_require__.s = 483);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -31310,7 +31310,7 @@ exports.DrawCanvas = DrawCanvas;
 /* 480 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var invariant = __webpack_require__(484);
+var invariant = __webpack_require__(485);
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
 var splice = Array.prototype.splice;
@@ -31541,13 +31541,21 @@ if (process.env.NODE_ENV !== 'production') {
 } else {
   // By explicitly using `prop-types` you are opting into new production behavior.
   // http://fb.me/prop-types-in-prod
-  module.exports = __webpack_require__(485)();
+  module.exports = __webpack_require__(486)();
 }
 
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1)))
 
 /***/ }),
 /* 482 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = function() {
+  return new Worker(__webpack_require__.p + "1091cec7313d64ffa4c7.worker.js");
+};
+
+/***/ }),
+/* 483 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -31574,6 +31582,10 @@ var _immutabilityHelper2 = _interopRequireDefault(_immutabilityHelper);
 var _gifs = __webpack_require__(196);
 
 var _draw = __webpack_require__(479);
+
+var _imagedata = __webpack_require__(482);
+
+var _imagedata2 = _interopRequireDefault(_imagedata);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -32173,6 +32185,119 @@ var GifEditor = function (_React$Component7) {
             });
         }
     }, {
+        key: 'getColorOptions',
+        value: function getColorOptions() {
+            // Rough way of filling in some color options. TODO: could see if there
+            // are better ways of picking a palette.
+            var colorOptions = [[255, 255, 255, 255], [200, 200, 200, 255], [150, 150, 150, 255], [100, 100, 100, 255], [50, 50, 50, 255]];
+
+            for (var r = 0; r < 6; r++) {
+                for (var g = 0; g < 8; g++) {
+                    for (var b = 0; b < 5; b++) {
+                        colorOptions.push([Math.floor(256 / 6 * r), Math.floor(256 / 8 * g), Math.floor(256 / 5 * b), 255]);
+                    }
+                }
+            }
+
+            return colorOptions;
+        }
+    }, {
+        key: 'getFrameList',
+        value: function getFrameList() {
+            var _this12 = this;
+
+            var currentFrame = this.state.frameData[this.state.currentFrame];
+            var frameList = [];
+            var i = 0;
+
+            var _loop2 = function _loop2(f) {
+                var frameNum = i;
+                frameList.push(_react2.default.createElement(FrameInfo, {
+                    frame: f,
+                    key: f.key,
+                    onDelayChange: function onDelayChange(value) {
+                        return _this12.changeDelay(frameNum, value);
+                    },
+                    selectFrame: function selectFrame() {
+                        return _this12.setState({ currentFrame: frameNum });
+                    },
+                    removeFrame: function removeFrame() {
+                        return _this12.removeFrame(frameNum);
+                    },
+                    selected: f === currentFrame }));
+                i++;
+            };
+
+            var _iteratorNormalCompletion2 = true;
+            var _didIteratorError2 = false;
+            var _iteratorError2 = undefined;
+
+            try {
+                for (var _iterator2 = this.state.frameData[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                    var f = _step2.value;
+
+                    _loop2(f);
+                }
+            } catch (err) {
+                _didIteratorError2 = true;
+                _iteratorError2 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                        _iterator2.return();
+                    }
+                } finally {
+                    if (_didIteratorError2) {
+                        throw _iteratorError2;
+                    }
+                }
+            }
+
+            return frameList;
+        }
+    }, {
+        key: 'getWarnings',
+        value: function getWarnings() {
+            var warnings = [];
+
+            if (this.state.brushSize === null) {
+                warnings.push('Brush size must be an integer between ' + MINBRUSHSIZE + ' and ' + MAXBRUSHSIZE + ' inclusive.');
+            }
+
+            var invalidFrames = this.state.frameData.some(function (f) {
+                return f.delay === null;
+            });
+            if (invalidFrames) {
+                warnings.push('Durations must be integers between ' + MINDELAY + ' and ' + MAXDELAY + ' inclusive.');
+            }
+
+            var warningList = null;
+            if (warnings.length > 0) {
+                warningList = _react2.default.createElement(
+                    'div',
+                    { id: 'messages' },
+                    _react2.default.createElement(
+                        'h1',
+                        null,
+                        'Whoops!'
+                    ),
+                    _react2.default.createElement(
+                        'ul',
+                        null,
+                        warnings.map(function (w) {
+                            return _react2.default.createElement(
+                                'li',
+                                { key: w },
+                                w
+                            );
+                        })
+                    )
+                );
+            }
+
+            return warningList;
+        }
+    }, {
         key: 'newFrameData',
         value: function newFrameData(props) {
             var c = document.createElement('canvas');
@@ -32242,6 +32367,7 @@ var GifEditor = function (_React$Component7) {
     }, {
         key: 'updateGif',
         value: function updateGif() {
+
             this.setState(function (state, props) {
                 // The task of constructing the image data for each frame is the
                 // most time consuming part of making a GIF, so if the frame data
@@ -32249,6 +32375,12 @@ var GifEditor = function (_React$Component7) {
                 // That cache will be valid until the user draws again in the
                 // frame.
                 var newFrameData = state.frameData.map(function (f) {
+                    var serialized = f.canvas.toDataURL('image/jpeg');
+                    var w = new _imagedata2.default();
+                    w.postMessage(serialized);
+                    w.onmessage = function (r) {
+                        console.log(r);
+                    };
                     if (!f.imageData) {
                         f = (0, _immutabilityHelper2.default)(f, { imageData: { $set: (0, _gifs.getImageData)(f.canvas) } });
                     }
@@ -32272,92 +32404,13 @@ var GifEditor = function (_React$Component7) {
     }, {
         key: 'render',
         value: function render() {
-            var _this12 = this;
-
-            var warnings = [];
-
-            if (this.state.brushSize === null) {
-                warnings.push('Brush size must be an integer between ' + MINBRUSHSIZE + ' and ' + MAXBRUSHSIZE + ' inclusive.');
-            }
-
             var invalidFrames = this.state.frameData.some(function (f) {
                 return f.delay === null;
             });
-            if (invalidFrames) {
-                warnings.push('Durations must be integers between ' + MINDELAY + ' and ' + MAXDELAY + ' inclusive.');
-            }
-
-            var warningList = null;
-            if (warnings.length > 0) {
-                warningList = _react2.default.createElement(
-                    'div',
-                    { id: 'messages' },
-                    _react2.default.createElement(
-                        'h1',
-                        null,
-                        'Whoops!'
-                    ),
-                    _react2.default.createElement(
-                        'ul',
-                        null,
-                        warnings.map(function (w) {
-                            return _react2.default.createElement(
-                                'li',
-                                { key: w },
-                                w
-                            );
-                        })
-                    )
-                );
-            }
+            var warnings = this.getWarnings();
 
             var currentFrame = this.state.frameData[this.state.currentFrame];
-
-            var frameListItems = [];
-            var i = 0;
-
-            var _loop2 = function _loop2(f) {
-                var frameNum = i;
-                frameListItems.push(_react2.default.createElement(FrameInfo, {
-                    frame: f,
-                    key: f.key,
-                    onDelayChange: function onDelayChange(value) {
-                        return _this12.changeDelay(frameNum, value);
-                    },
-                    selectFrame: function selectFrame() {
-                        return _this12.setState({ currentFrame: frameNum });
-                    },
-                    removeFrame: function removeFrame() {
-                        return _this12.removeFrame(frameNum);
-                    },
-                    selected: f === currentFrame }));
-                i++;
-            };
-
-            var _iteratorNormalCompletion2 = true;
-            var _didIteratorError2 = false;
-            var _iteratorError2 = undefined;
-
-            try {
-                for (var _iterator2 = this.state.frameData[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                    var f = _step2.value;
-
-                    _loop2(f);
-                }
-            } catch (err) {
-                _didIteratorError2 = true;
-                _iteratorError2 = err;
-            } finally {
-                try {
-                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                        _iterator2.return();
-                    }
-                } finally {
-                    if (_didIteratorError2) {
-                        throw _iteratorError2;
-                    }
-                }
-            }
+            var frameList = this.getFrameList();
 
             var gif = this.state.gifData ? _react2.default.createElement('img', { src: this.state.gifData }) : null;
 
@@ -32365,18 +32418,6 @@ var GifEditor = function (_React$Component7) {
                 "width": this.props.width,
                 "height": this.props.height
             };
-
-            // Rough way of filling in some color options. TODO: could see if there
-            // are better ways of picking a palette.
-            var colorOptions = [[255, 255, 255, 255], [200, 200, 200, 255], [150, 150, 150, 255], [100, 100, 100, 255], [50, 50, 50, 255]];
-
-            for (var r = 0; r < 6; r++) {
-                for (var g = 0; g < 8; g++) {
-                    for (var b = 0; b < 5; b++) {
-                        colorOptions.push([Math.floor(256 / 6 * r), Math.floor(256 / 8 * g), Math.floor(256 / 5 * b), 255]);
-                    }
-                }
-            }
 
             var brush = this.state.brushSize === null ? null : createRoundBrush(this.state.brushSize, this.state.color);
 
@@ -32417,7 +32458,7 @@ var GifEditor = function (_React$Component7) {
                         'Have fun!'
                     )
                 ),
-                warningList,
+                warnings,
                 _react2.default.createElement(
                     'div',
                     { id: 'editor' },
@@ -32432,7 +32473,7 @@ var GifEditor = function (_React$Component7) {
                         initialValue: this.state.brushSize
                     }),
                     _react2.default.createElement(ColorEditor, {
-                        colors: colorOptions,
+                        colors: this.getColorOptions(),
                         currentColor: this.state.color,
                         label: 'Color: ',
                         setColor: this.setColor
@@ -32463,7 +32504,7 @@ var GifEditor = function (_React$Component7) {
                     _react2.default.createElement(
                         'ol',
                         { id: 'frameList' },
-                        frameListItems
+                        frameList
                     ),
                     _react2.default.createElement(
                         'div',
@@ -32538,8 +32579,8 @@ var Preview = function (_React$Component8) {
 }(_react2.default.Component);
 
 /***/ }),
-/* 483 */,
-/* 484 */
+/* 484 */,
+/* 485 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -32598,7 +32639,7 @@ module.exports = invariant;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1)))
 
 /***/ }),
-/* 485 */
+/* 486 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
