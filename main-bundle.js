@@ -12788,31 +12788,24 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 // Module for constructing a (possibly animated) GIF out of images stored in
 // HTML5 canvases.
 
-// To make a GIF, first create one or more image data objects using the
-// getImageData function, use those objects to create one or more instances of
-// Frame to represent the individual frame(s) of the animation, then pass those
-// frames to getGifUrl.
+// To make a GIF, first create one or more image data objects using either the
+// getImageData or canvasDataToGIFData function. Then, use those objects to
+// create one or more instances of Frame to represent the individual frame(s)
+// of the animation. Finally, pass those frames to getGifUrl.
 
 
 /************* Public interface *************/
 
-function getImageData(canvas) {
-    // Takes an HTML5 canvas and returns an object representing GIF image data
-    // that corresponds to the image in that canvas. The object returned
-    // includes the actual bytes of image data (represented here as an array of
-    // integers) and some metadata helpful for inserting those bytes into a
-    // full-fledged GIF.
+function canvasDataToGIFData(canvasData, width, height) {
+    // Take an array of image data (like you'd get from calling getImageData on
+    // a canvas context) and convert it to an object representing the image. We'll
+    // need to know the width and height of the original image.
 
-    var width = canvas.width;
-    var height = canvas.height;
-
-    var ctx = canvas.getContext('2d');
-
-    // We'll have a list of colors. Each color is referred to by an "index" (just some
-    // integer that'll uniquely identify the color). We want to encode the image as
-    // an array of indices, where each index tells us the color of one pixel.
-
-    var _toIndices = toIndices(ctx),
+    // To start, we'll need to have a list of colors. Each color will be
+    // referred to by an "index" (just some integer that'll uniquely identify
+    // the color). We want to encode the image as an array of indices, where
+    // each index tells us the color of one pixel.
+    var _toIndices = toIndices(canvasData),
         indices = _toIndices.indices,
         colors = _toIndices.colors,
         transparentIndex = _toIndices.transparentIndex;
@@ -12884,6 +12877,21 @@ function getImageData(canvas) {
 
         data: data
     };
+}
+
+function getImageData(canvas) {
+    // Takes an HTML5 canvas and returns an object representing GIF image data
+    // that corresponds to the image in that canvas. The object returned
+    // includes the actual bytes of image data (represented here as an array of
+    // integers) and some metadata helpful for inserting those bytes into a
+    // full-fledged GIF.
+
+    var width = canvas.width;
+    var height = canvas.height;
+
+    var ctx = canvas.getContext('2d');
+    var d = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data;
+    return canvasDataToGIFData(d, width, height);
 }
 
 var Frame = function () {
@@ -13553,8 +13561,10 @@ function getGCE(delay, disposal, transparentIndex) {
     ]);
 }
 
-function toIndices(ctx) {
-    // Convert a canvas context to a series of "indices."
+function toIndices(d) {
+    // Convert an array of image data (like you get from calling getImageData
+    // on a canvas context) to a series of "indices" usable in constructing a
+    // GIF.
     //
     // Each index is a number corresponding to one pixel read from the canvas.
     //
@@ -13574,9 +13584,6 @@ function toIndices(ctx) {
     // 3) a transparent index, indicating which index corresponds with a
     // transparent pixel. This will be "undefined" if the canvas contained no
     // transparent pixels.
-
-
-    var d = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data;
 
     var colors = [];
     var colorMap = new Map();
@@ -13696,6 +13703,7 @@ function toCharCodes(str) {
     });
 }
 
+exports.canvasDataToGIFData = canvasDataToGIFData;
 exports.Frame = Frame;
 exports.getGifData = getGifData;
 exports.getGifUrl = getGifUrl;
@@ -31551,7 +31559,7 @@ if (process.env.NODE_ENV !== 'production') {
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = function() {
-  return new Worker(__webpack_require__.p + "cdaca3f62ab56eb389b2.worker.js");
+  return new Worker(__webpack_require__.p + "a0a30d7502a191552111.worker.js");
 };
 
 /***/ }),
@@ -32128,7 +32136,8 @@ var GifEditor = function (_React$Component7) {
             color: [0, 0, 0, 255],
             currentFrame: 0,
             frameData: frameData,
-            gifData: ''
+            gifData: '',
+            updatingGif: false
         };
 
         _this10.addFrame = _this10.addFrame.bind(_this10);
@@ -32367,43 +32376,99 @@ var GifEditor = function (_React$Component7) {
     }, {
         key: 'updateGif',
         value: function updateGif() {
+            var _this13 = this;
 
-            this.setState(function (state, props) {
-                // The task of constructing the image data for each frame is the
-                // most time consuming part of making a GIF, so if the frame data
-                // doesn't already have the data we need, cache the result there.
-                // That cache will be valid until the user draws again in the
-                // frame.
-                var newFrameData = state.frameData.map(function (f) {
-                    var serialized = f.canvas.toDataURL('image/jpeg');
-                    var w = new _imagedata2.default();
-                    w.postMessage(serialized);
-                    w.onmessage = function (r) {
-                        console.log(r);
-                    };
-                    if (!f.imageData) {
-                        f = (0, _immutabilityHelper2.default)(f, { imageData: { $set: (0, _gifs.getImageData)(f.canvas) } });
+            // This function updates the GIF based the image data on each frame.
+            //
+            // Processing each frame and turning the canvas data into GIF data is
+            // the most time consuming part of making a GIF. So...
+            //
+            // 1) Do it in a web worker so it doesn't block.
+            //
+            // 2) Cache the result as 'frame.imageData'. If the user doesn't change
+            // a given frame, we don't have to reprocess that frame next time they
+            // update the GIF.
+            //
+            // TODO: Currently this isn't very "thread-safe"- if the user makes
+            // modifications to the frames or images while the GIF is being built,
+            // it won't work quite right. For now, using a big overlay div to
+            // prevent edits.
+            //
+            // The issue is that the result that comes back from the web worker is
+            // missing important information (frame duration and disposal method)
+            // that's in the state.frameData. So, when it does come back, we need
+            // to look through the frameData to get that information, and we need
+            // all the frames to still be in the frameData (and in the same order)
+            // to correctly retrieve it. Instead, we should give the web worker all
+            // the information that was in the frame data so that it comes back and
+            // we don't need to reconstruct it.
+            //
+            // Also, we're caching the GIF data back into the frameData structure.
+            // This again requires that the frameData have all the same elements it
+            // did when we started constructing the GIF, so that we can cache the
+            // right date with the right frame. Maybe we can store the cache as its
+            // own data structure instead. This would require a means of matching
+            // the cached data with the correct frame without it all being in the
+            // same number/order (maybe each frame gets a unique id that updates
+            // whenever a drawing gets updated, which can also be used to
+            // validate/invalidate the cache).
+            //
+            // TODO: add progress indicator.
+
+            this.setState({ updatingGif: true });
+            var promises = this.state.frameData.map(function (frame) {
+                return new Promise(function (resolve, reject) {
+                    if (frame.imageData) {
+                        resolve(frame.imageData);
+                    } else {
+                        var w = new _imagedata2.default();
+                        var c = frame.canvas;
+                        var d = c.getContext('2d').getImageData(0, 0, c.width, c.height);
+                        w.onmessage = function (m) {
+                            return resolve(m.data);
+                        };
+                        w.postMessage({
+                            'width': c.width,
+                            'height': c.height,
+                            'data': d.data
+                        });
                     }
-                    return f;
                 });
+            });
 
-                // Note, the "number" input allows scientific notation, but
-                // parseInt doesn't get it.  (It interprets 1e3 as 1, for example).
-                // parseFloat works better.  TODO: could do some validation of
-                // delay values here, in case the user's browser doesn't support
-                // number inputs.
-                var frames = newFrameData.map(function (f, i) {
-                    return new _gifs.Frame(f.imageData, Math.floor(parseFloat(f.delay, 10)), f.disposal);
+            Promise.all(promises).then(function (newImageData) {
+                // TODO: Need to lock edits to the gifs while this is going on.
+                // Just in case, maybe handle case where there are more frames than
+                // we had going in.
+                _this13.setState(function (state, props) {
+                    var newFrameData = state.frameData.map(function (f, i) {
+                        return (0, _immutabilityHelper2.default)(f, { imageData: { $set: newImageData[i] } });
+                    });
+
+                    // Note, the "number" input allows scientific notation, but
+                    // parseInt doesn't get it.  (It interprets 1e3 as 1, for example).
+                    // parseFloat works better.  TODO: could do some validation of
+                    // delay values here, in case the user's browser doesn't support
+                    // number inputs.
+                    var frames = newFrameData.map(function (f, i) {
+                        return new _gifs.Frame(f.imageData, Math.floor(parseFloat(f.delay, 10)), f.disposal);
+                    });
+
+                    var gifData = (0, _gifs.getGifUrl)(frames, 0, _this13.props.width, _this13.props.height);
+
+                    return { gifData: gifData, frameData: newFrameData, updatingGif: false };
                 });
-
-                var gifData = (0, _gifs.getGifUrl)(frames, 0, props.width, props.height);
-
-                return { gifData: gifData, frameData: newFrameData };
             });
         }
     }, {
         key: 'render',
         value: function render() {
+            var overlay = this.state.updatingGif ? _react2.default.createElement(
+                'div',
+                { id: 'overlay' },
+                'Working...'
+            ) : null;
+
             var invalidFrames = this.state.frameData.some(function (f) {
                 return f.delay === null;
             });
@@ -32424,6 +32489,7 @@ var GifEditor = function (_React$Component7) {
             return _react2.default.createElement(
                 'main',
                 null,
+                overlay,
                 _react2.default.createElement(
                     Hideable,
                     { showText: 'Help!', hideText: 'Hide help' },
